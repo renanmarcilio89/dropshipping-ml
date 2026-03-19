@@ -35,7 +35,7 @@ def health() -> None:
 @app.command('sync-trends')
 def sync_trends(site_id: str = settings.meli_site_id) -> None:
     db = SessionLocal()
-    client = MercadoLivreClient(settings)
+    client = MercadoLivreClient(settings, db)
     try:
         job = SyncTrendsJob(SearchService(client), SearchRepository(db))
         typer.echo(json.dumps(job.run(site_id), ensure_ascii=False, indent=2))
@@ -47,7 +47,7 @@ def sync_trends(site_id: str = settings.meli_site_id) -> None:
 @app.command('search-marketplace')
 def search_marketplace(query: str, site_id: str = settings.meli_site_id, offset: int = 0) -> None:
     db = SessionLocal()
-    client = MercadoLivreClient(settings)
+    client = MercadoLivreClient(settings, db)
     try:
         job = SearchMarketplaceJob(SearchService(client), SearchRepository(db))
         typer.echo(json.dumps(job.run(site_id=site_id, query=query, offset=offset), ensure_ascii=False, indent=2))
@@ -59,7 +59,7 @@ def search_marketplace(query: str, site_id: str = settings.meli_site_id, offset:
 @app.command('enrich-items')
 def enrich_items(item_ids: list[str], site_id: str = settings.meli_site_id) -> None:
     db = SessionLocal()
-    client = MercadoLivreClient(settings)
+    client = MercadoLivreClient(settings, db)
     try:
         job = EnrichItemsJob(ItemService(client), SearchRepository(db))
         typer.echo(json.dumps(job.run(site_id=site_id, item_ids=item_ids), ensure_ascii=False, indent=2))
