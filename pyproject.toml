@@ -1,7 +1,7 @@
 [project]
 name = "mercadolivre-ml-pipeline"
 version = "0.1.0"
-description = "Pipeline modular para inteligência de mercado e operação futura no Mercado Livre"
+description = "Modular pipeline for market intelligence and future operations on Mercado Livre"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
