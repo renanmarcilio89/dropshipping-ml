@@ -33,8 +33,6 @@ class MercadoLivreClient:
         if authenticated:
             token = self._get_access_token()
             headers['Authorization'] = f'Bearer {token}'
-        elif self.settings.meli_access_token:
-            headers['Authorization'] = f'Bearer {self.settings.meli_access_token}'
 
         return headers
 
@@ -103,7 +101,7 @@ class MercadoLivreClient:
         if extra_params:
             params.update(extra_params)
 
-        response = self._get(f'/sites/{site}/search', params=params, authenticated=False)
+        response = self._get(f'/sites/{site}/search', params=params, authenticated=True)
         if isinstance(response, dict):
             return response
         raise MeliAPIError('Resposta inesperada em /sites/{site}/search.')
