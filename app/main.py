@@ -13,6 +13,7 @@ from app.jobs.enrich_items import EnrichItemsJob
 from app.jobs.search_marketplace import SearchMarketplaceJob
 from app.jobs.sync_trends import SyncTrendsJob
 from app.repositories.meli_credentials import MeliCredentialRepository
+from app.repositories.raw_payload_repository import RawPayloadRepository
 from app.repositories.search_repository import SearchRepository
 from app.scoring.opportunity import ItemContext, score_item
 from app.services.alert_service import AlertService
@@ -37,7 +38,11 @@ def sync_trends(site_id: str = settings.meli_site_id) -> None:
     db = SessionLocal()
     client = MercadoLivreClient(settings, db)
     try:
-        job = SyncTrendsJob(SearchService(client), SearchRepository(db))
+        job = SyncTrendsJob(
+            SearchService(client),
+            SearchRepository(db),
+            RawPayloadRepository(db),
+        )
         typer.echo(json.dumps(job.run(site_id), ensure_ascii=False, indent=2))
     finally:
         client.close()
@@ -49,7 +54,11 @@ def search_marketplace(query: str, site_id: str = settings.meli_site_id, offset:
     db = SessionLocal()
     client = MercadoLivreClient(settings, db)
     try:
-        job = SearchMarketplaceJob(SearchService(client), SearchRepository(db))
+        job = SearchMarketplaceJob(
+            SearchService(client),
+            SearchRepository(db),
+            RawPayloadRepository(db),
+        )
         typer.echo(json.dumps(job.run(site_id=site_id, query=query, offset=offset), ensure_ascii=False, indent=2))
     finally:
         client.close()
