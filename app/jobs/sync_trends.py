@@ -1,5 +1,5 @@
 from app.repositories.raw_payload_repository import RawPayloadRepository
-from app.repositories.search_repository import SearchRepository
+from app.repositories.trend_repository import TrendRepository
 from app.services.search_service import SearchService
 
 
@@ -7,7 +7,7 @@ class SyncTrendsJob:
     def __init__(
         self,
         service: SearchService,
-        repository: SearchRepository,
+        repository: TrendRepository,
         raw_payload_repository: RawPayloadRepository,
     ) -> None:
         self.service = service
@@ -18,8 +18,8 @@ class SyncTrendsJob:
         terms, payload, payload_hash, captured_at = self.service.fetch_trends(site_id)
 
         raw_payload = self.raw_payload_repository.save(
-            source_name='trends',
-            endpoint=f'/trends/{site_id}',
+            source_name="trends",
+            endpoint=f"/trends/{site_id}",
             payload=payload,
             payload_hash=payload_hash,
             captured_at=captured_at,
@@ -27,12 +27,17 @@ class SyncTrendsJob:
             site_id=site_id,
         )
 
-        saved = self.repository.save_trends(site_id=site_id, terms=terms, captured_at=captured_at)
+        saved = self.repository.save_trends(
+            site_id=site_id,
+            terms=terms,
+            captured_at=captured_at,
+            raw_payload_hash=payload_hash,
+        )
 
         return {
-            'site_id': site_id,
-            'captured_at': captured_at.isoformat(),
-            'saved_terms': saved,
-            'raw_payload_hash': payload_hash,
-            'raw_payload_id': raw_payload.id,
+            "site_id": site_id,
+            "captured_at": captured_at.isoformat(),
+            "saved_terms": saved,
+            "raw_payload_hash": payload_hash,
+            "raw_payload_id": raw_payload.id,
         }
