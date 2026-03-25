@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from app.models.market import TrendSnapshot
@@ -31,3 +32,12 @@ class TrendRepository:
         self.session.add_all(rows)
         self.session.commit()
         return len(rows)
+    
+    def list_recent_terms(self, limit: int = 100) -> list[str]:
+        stmt = (
+            select(TrendSnapshot.term)
+            .order_by(desc(TrendSnapshot.captured_at), TrendSnapshot.rank_position.asc())
+            .limit(limit)
+        )
+        rows = self.session.execute(stmt).scalars().all()
+        return list(rows)
