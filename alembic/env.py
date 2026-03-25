@@ -3,12 +3,13 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from app.core.settings import settings
+from app.core.settings import get_settings
 from app.models import Base
-from app.models.auth import MeliCredential  # noqa: F401
-
+from app.models.market import Candidate, OpportunityScore, TrendSnapshot  # noqa: F401
+from app.models.raw import ApiPayload  # noqa: F401
 
 config = context.config
+settings = get_settings()
 
 if config.config_file_name is not None:
     try:
