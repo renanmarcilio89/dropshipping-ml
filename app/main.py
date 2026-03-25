@@ -11,6 +11,7 @@ from app.core.settings import get_settings
 from app.db.session import SessionLocal, engine
 from app.jobs.enrich_items import EnrichItemsJob
 from app.jobs.search_marketplace import SearchMarketplaceJob
+from app.jobs.sync_seller_items import SyncSellerItemsJob
 from app.jobs.sync_trends import SyncTrendsJob
 from app.repositories.meli_credentials import MeliCredentialRepository
 from app.repositories.raw_payload_repository import RawPayloadRepository
@@ -60,6 +61,43 @@ def search_marketplace(query: str, site_id: str = settings.meli_site_id, offset:
             RawPayloadRepository(db),
         )
         typer.echo(json.dumps(job.run(site_id=site_id, query=query, offset=offset), ensure_ascii=False, indent=2))
+    finally:
+        client.close()
+        db.close()
+
+
+@app.command("sync-seller-items")
+def sync_seller_items(
+    user_id: int,
+    site_id: str = settings.meli_site_id,
+    offset: int = 0,
+    limit: int = 50,
+    search_type: str | None = None,
+    status: str | None = None,
+) -> None:
+    db = SessionLocal()
+    client = MercadoLivreClient(settings, db)
+    try:
+        job = SyncSellerItemsJob(
+            search_service=SearchService(client),
+            item_service=ItemService(client),
+            search_repository=SearchRepository(db),
+            raw_payload_repository=RawPayloadRepository(db),
+        )
+
+        extra_params = {}
+        if status:
+            extra_params["status"] = status
+
+        result = job.run(
+            user_id=user_id,
+            site_id=site_id,
+            offset=offset,
+            limit=limit,
+            search_type=search_type,
+            extra_params=extra_params or None,
+        )
+        typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
     finally:
         client.close()
         db.close()
