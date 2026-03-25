@@ -52,3 +52,23 @@ class SearchService:
             )
 
         return items, payload, self.payload_hash(payload), captured_at
+
+    def search_user_items(
+        self,
+        user_id: int,
+        offset: int = 0,
+        limit: int = 50,
+        search_type: str | None = None,
+        extra_params: dict[str, Any] | None = None,
+    ) -> tuple[list[str], dict[str, Any], str, datetime]:
+        payload = self.client.search_user_items(
+            user_id=user_id,
+            offset=offset,
+            limit=limit,
+            search_type=search_type,
+            extra_params=extra_params,
+        )
+        captured_at = datetime.now(timezone.utc)
+        results = payload.get("results", [])
+        item_ids = [item_id for item_id in results if isinstance(item_id, str)]
+        return item_ids, payload, self.payload_hash(payload), captured_at

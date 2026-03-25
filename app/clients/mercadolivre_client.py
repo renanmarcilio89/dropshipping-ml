@@ -135,3 +135,26 @@ class MercadoLivreClient:
         if isinstance(response, list):
             return response
         raise MeliAPIError('Resposta inesperada em /categories/{category_id}/attributes.')
+
+    def search_user_items(
+        self,
+        user_id: int,
+        offset: int = 0,
+        limit: int = DEFAULT_LIMIT,
+        search_type: str | None = None,
+        extra_params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        params = {"offset": offset, "limit": limit}
+        if search_type:
+            params["search_type"] = search_type
+        if extra_params:
+            params.update(extra_params)
+
+        response = self._get(
+            f"/users/{user_id}/items/search",
+            params=params,
+            authenticated=True,
+        )
+        if isinstance(response, dict):
+            return response
+        raise MeliAPIError("Resposta inesperada em /users/{user_id}/items/search.")
