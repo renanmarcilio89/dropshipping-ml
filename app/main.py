@@ -9,10 +9,13 @@ from app.clients.mercadolivre_client import MercadoLivreClient
 from app.core.logging import configure_logging
 from app.core.settings import get_settings
 from app.db.session import SessionLocal, engine
+from app.jobs.build_candidates import BuildCandidatesJob
 from app.jobs.sync_trends import SyncTrendsJob
+from app.repositories.candidate_repository import CandidateRepository
 from app.repositories.meli_credentials import MeliCredentialRepository
 from app.repositories.raw_payload_repository import RawPayloadRepository
 from app.repositories.trend_repository import TrendRepository
+from app.services.candidate_service import CandidateService
 from app.services.meli_auth_service import MeliAuthService
 from app.services.search_service import SearchService
 
@@ -93,6 +96,20 @@ def auth_refresh() -> None:
         client = MeliApiClient(db)
         token = client._refresh_and_get_access_token()
         typer.echo(f'Novo access token obtido com sucesso: {token[:16]}...')
+    finally:
+        db.close()
+
+
+@app.command("build-candidates")
+def build_candidates(trend_limit: int = 100) -> None:
+    db = SessionLocal()
+    try:
+        job = BuildCandidatesJob(
+            trend_repository=TrendRepository(db),
+            candidate_repository=CandidateRepository(db),
+            candidate_service=CandidateService(),
+        )
+        typer.echo(json.dumps(job.run(trend_limit=trend_limit), ensure_ascii=False, indent=2))
     finally:
         db.close()
 
