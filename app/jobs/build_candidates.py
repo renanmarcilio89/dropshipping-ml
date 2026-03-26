@@ -15,12 +15,20 @@ class BuildCandidatesJob:
         self.candidate_service = candidate_service
 
     def run(self, trend_limit: int = 100) -> dict:
-        terms = self.trend_repository.list_recent_terms(limit=trend_limit)
-        prepared_terms = self.candidate_service.build_from_terms(terms)
-        saved = self.candidate_repository.upsert_candidates(prepared_terms)
+        session = self.candidate_repository.session
 
-        return {
-            "trend_terms_read": len(terms),
-            "candidate_terms_prepared": len(prepared_terms),
-            "candidates_created_or_updated": saved,
-        }
+        try:
+            terms = self.trend_repository.list_recent_terms(limit=trend_limit)
+            prepared_terms = self.candidate_service.build_from_terms(terms)
+            saved = self.candidate_repository.upsert_candidates(prepared_terms)
+
+            session.commit()
+
+            return {
+                "trend_terms_read": len(terms),
+                "candidate_terms_prepared": len(prepared_terms),
+                "candidates_created_or_updated": saved,
+            }
+        except Exception:
+            session.rollback()
+            raise
