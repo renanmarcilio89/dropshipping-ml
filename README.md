@@ -1,69 +1,260 @@
-# Mercado Livre ML Pipeline
+# dropshipping-ml
 
-Scaffolding inicial para um pipeline modular de inteligência de mercado no Mercado Livre, orientado a:
+Pipeline modular em Python para construção de um agente de inteligência de mercado no Mercado Livre.
 
-- descoberta de demanda
-- coleta de resultados de busca
-- enriquecimento de itens
-- normalização de concorrência
-- cálculo de score de oportunidade
-- alertas
+O objetivo deste projeto é identificar oportunidades de venda (dropshipping e afiliados) com base em sinais reais de demanda, concorrência e qualidade de mercado — **sem atuar como seller nesta fase inicial**.
 
-## Stack
+---
 
-- Python 3.12
-- SQLAlchemy 2.x
-- Alembic
-- PostgreSQL
-- httpx
-- Pydantic v2
-- Typer
-- structlog
-- pytest
+## 🎯 Objetivo do sistema
 
-## Contas, credenciais e possíveis custos
+Construir um pipeline que:
 
-### 1. Mercado Livre Developers
-Necessário criar uma aplicação no portal Developers para obter credenciais OAuth e access token. A documentação oficial informa que o token deve ser enviado no header de autorização em todas as chamadas e que a aplicação pode atuar em nome do usuário enquanto o token estiver válido. citeturn714139search0turn714139search13
+1. Descobre demanda (trends)
+2. Gera candidatos de produto/nicho
+3. Qualifica candidatos (filtrando itens inviáveis)
+4. Enriquece candidatos com dados de mercado
+5. Calcula score de oportunidade
+6. Gera alertas acionáveis
 
-Impacto de custo: normalmente não há custo direto para criar a aplicação, mas existe custo indireto de desenvolvimento, manutenção e eventual infraestrutura de execução.
+---
 
-### 2. Banco PostgreSQL
-Você pode rodar localmente sem custo inicial. Se optar por serviço gerenciado, haverá custo mensal.
+## 🚨 Escopo atual (muito importante)
 
-### 3. Scheduler / worker
-Nesta fase o projeto nasce com CLI e jobs sincronizáveis por cron/Task Scheduler. Isso evita custo inicial com Celery broker, filas gerenciadas ou orquestradores pagos.
+Este projeto **não é**, neste momento:
 
-## Boas práticas importantes
+* um integrador de seller
+* um sincronizador de catálogo próprio
+* um gerenciador de anúncios
+* um sistema baseado em `/users/{user_id}/items/search`
 
-A documentação do Mercado Livre recomenda trabalhar com a API em vez de web crawling. Nosso desenho segue essa diretriz: API-first e scraping HTML apenas como complemento pontual, quando estritamente necessário. citeturn714139search7
+O foco atual é **exclusivamente inteligência de mercado**.
 
-## Checkpoints de commit sugeridos
+---
 
-1. `chore: bootstrap do projeto e configuração base`
-2. `feat: cliente Mercado Livre e schemas iniciais`
-3. `feat: models SQLAlchemy e sessão de banco`
-4. `feat: jobs de trends, search e enrich`
-5. `feat: score de oportunidade e alertas`
-6. `test: cobertura inicial do core e scoring`
+## 🧠 Filosofia do projeto
 
-## Instalação
+* API-first (uso da API oficial do Mercado Livre)
+* Persistência de payload bruto para auditoria
+* Pipeline incremental e reprocessável
+* Separação clara entre:
 
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# .venv\Scripts\activate  # Windows
-pip install -e .[dev]
+  * jobs (orquestração)
+  * services (regra de negócio)
+  * repositories (acesso a dados)
+
+---
+
+## 🧱 Arquitetura
+
+O projeto segue uma arquitetura modular baseada em:
+
+```text
+CLI (Typer)
+  ↓
+Jobs (orquestração do pipeline)
+  ↓
+Services (lógica de negócio)
+  ↓
+Repositories (persistência)
+  ↓
+Banco de dados (PostgreSQL)
 ```
 
-## Variáveis de ambiente
+### Componentes principais
 
-Copie `.env.example` para `.env` e preencha os valores.
+* **Jobs** → executam etapas do pipeline
+* **Services** → contêm regras e transformações
+* **Repositories** → abstraem acesso ao banco
+* **Models** → definem estrutura de dados
+* **Clients** → integração com API do Mercado Livre
 
-## CLI
+---
+
+## 🔄 Pipeline atual
+
+```text
+sync-trends → build-candidates → qualify-candidates
+```
+
+### ✔ Etapas implementadas
+
+#### 1. Trends ingestion (`sync-trends`)
+
+* Coleta termos de trends da API
+* Salva payload bruto (`api_payload`)
+* Cria snapshots (`trend_snapshot`)
+
+#### 2. Candidate generation (`build-candidates`)
+
+* Normalização de termos
+* Deduplicação
+* Criação de candidatos (`candidate`)
+
+#### 3. Candidate qualification (`qualify-candidates`)
+
+Classificação baseada em heurísticas:
+
+* `approved` → elegível para enriquecimento
+* `rejected` → descartado
+* `needs_review` → análise manual futura
+
+---
+
+## 🔜 Próximas etapas
+
+```text
+sync-trends
+  → build-candidates
+  → qualify-candidates
+  → enrich-candidates
+  → score-candidates
+  → generate-alerts
+```
+
+### Próximo passo imediato
+
+👉 `enrich-candidates`
+
+Responsável por:
+
+* coletar sinais de mercado reais
+* analisar concorrência
+* identificar padrões de preço e oferta
+* preparar base para scoring
+
+---
+
+## 🗃️ Modelo de dados (resumo)
+
+### candidate
+
+Representa um possível produto ou nicho.
+
+Campos principais:
+
+* `source_term`
+* `normalized_term`
+* `status`
+* `qualification_status`
+* `qualification_reason`
+* `first_seen_at`
+* `last_seen_at`
+
+---
+
+### trend_snapshot
+
+* termos coletados de trends
+* posição no ranking
+* timestamp de captura
+
+---
+
+### api_payload
+
+* payload bruto da API
+* usado para:
+
+  * auditoria
+  * reprocessamento
+  * debugging
+
+---
+
+### opportunity_score (futuro)
+
+* demand_score
+* competition_score
+* quality_score
+* ops_risk_score
+* final_score
+
+---
+
+## ⚙️ Stack
+
+* Python 3.12
+* SQLAlchemy 2.x
+* Alembic
+* PostgreSQL
+* httpx
+* Pydantic v2
+* Typer
+* structlog
+* pytest
+
+---
+
+## 🧪 Execução via CLI
 
 ```bash
-ml-pipeline health
-ml-pipeline sync-trends
-ml-pipeline search-marketplace --query "garrafa termica"
+python -m app.main health
+
+python -m app.main sync-trends
+
+python -m app.main build-candidates
+
+python -m app.main qualify-candidates
 ```
+
+---
+
+## 🔐 Autenticação Mercado Livre
+
+Fluxo baseado em OAuth:
+
+1. Obter authorization code
+2. Trocar por access_token
+3. Persistir no banco
+4. Refresh automático quando necessário
+
+Comando disponível:
+
+```bash
+python -m app.main auth-bootstrap "<authorization_code>"
+```
+
+---
+
+## 💾 Banco de dados
+
+* PostgreSQL
+* Controle de schema via Alembic
+* Armazenamento de:
+
+  * candidatos
+  * trends
+  * payloads brutos
+  * (futuro) snapshots de mercado e scoring
+
+---
+
+## 🧩 Princípios importantes
+
+* **Jobs controlam transação (commit/rollback)**
+* **Repositories não fazem commit**
+* **Normalização centralizada**
+* **Estados explícitos (sem strings mágicas espalhadas)**
+* **Pipeline sempre reprocessável**
+
+---
+
+## 📌 Roadmap técnico
+
+* [x] Trends ingestion
+* [x] Candidate generation
+* [x] Candidate qualification
+* [ ] Candidate enrichment
+* [ ] Opportunity scoring
+* [ ] Alert engine
+
+---
+
+## 📎 Observação final
+
+Este projeto foi desenhado para evoluir de forma incremental.
+
+A prioridade não é operar como seller imediatamente, mas sim construir uma **camada sólida de inteligência de mercado**, capaz de identificar oportunidades reais antes de qualquer execução operacional.
+
+---
