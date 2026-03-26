@@ -1,3 +1,7 @@
+class CandidateType:
+    PRODUCT_TERM = "product_term"
+
+
 class CandidateStatus:
     PENDING_ENRICHMENT = "pending_enrichment"
     APPROVED_FOR_ENRICHMENT = "approved_for_enrichment"
