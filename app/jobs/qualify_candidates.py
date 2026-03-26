@@ -31,9 +31,9 @@ class QualifyCandidatesJob:
                     qualification_reason=decision.reason,
                 )
 
-                if decision.qualification_status == CandidateQualificationStatus.APPROVED.value:
+                if decision.qualification_status == CandidateQualificationStatus.APPROVED:
                     approved += 1
-                elif decision.qualification_status == CandidateQualificationStatus.REJECTED.value:
+                elif decision.qualification_status == CandidateQualificationStatus.REJECTED:
                     rejected += 1
                 else:
                     needs_review += 1
