@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, Numeric, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.candidate_status import CandidateQualificationStatus, CandidateStatus
 from app.models.base import Base
 
 
@@ -27,13 +28,13 @@ class Candidate(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     source_term: Mapped[str] = mapped_column(Text, nullable=False)
     normalized_term: Mapped[str] = mapped_column(Text, nullable=False)
-    candidate_type: Mapped[str] = mapped_column(Text, nullable=False, default="product_term")
+    candidate_type: Mapped[str] = mapped_column(Text, nullable=False, default=CandidateStatus.PRODUCT_TERM.value)
     canonical_name: Mapped[str] = mapped_column(Text, nullable=False)
-    status: Mapped[str] = mapped_column(Text, nullable=False, default="pending_enrichment")
+    status: Mapped[str] = mapped_column(Text, nullable=False, default=CandidateStatus.PENDING_ENRICHMENT.value)
     qualification_status: Mapped[str] = mapped_column(
         Text,
         nullable=False,
-        default="pending",
+        default=CandidateQualificationStatus.PENDING.value,
     )
     qualification_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_qualified_at: Mapped[datetime | None] = mapped_column(
