@@ -15,29 +15,37 @@ class SyncTrendsJob:
         self.raw_payload_repository = raw_payload_repository
 
     def run(self, site_id: str) -> dict:
-        terms, payload, payload_hash, captured_at = self.service.fetch_trends(site_id)
+        session = self.repository.session
 
-        raw_payload = self.raw_payload_repository.save(
-            source_name="trends",
-            endpoint=f"/trends/{site_id}",
-            payload=payload,
-            payload_hash=payload_hash,
-            captured_at=captured_at,
-            request_params=None,
-            site_id=site_id,
-        )
+        try:
+            terms, payload, payload_hash, captured_at = self.service.fetch_trends(site_id)
 
-        saved = self.repository.save_trends(
-            site_id=site_id,
-            terms=terms,
-            captured_at=captured_at,
-            raw_payload_hash=payload_hash,
-        )
+            raw_payload = self.raw_payload_repository.save(
+                source_name="trends",
+                endpoint=f"/trends/{site_id}",
+                payload=payload,
+                payload_hash=payload_hash,
+                captured_at=captured_at,
+                request_params=None,
+                site_id=site_id,
+            )
 
-        return {
-            "site_id": site_id,
-            "captured_at": captured_at.isoformat(),
-            "saved_terms": saved,
-            "raw_payload_hash": payload_hash,
-            "raw_payload_id": raw_payload.id,
-        }
+            saved = self.repository.save_trends(
+                site_id=site_id,
+                terms=terms,
+                captured_at=captured_at,
+                raw_payload_hash=payload_hash,
+            )
+
+            session.commit()
+
+            return {
+                "site_id": site_id,
+                "captured_at": captured_at.isoformat(),
+                "saved_terms": saved,
+                "raw_payload_hash": payload_hash,
+                "raw_payload_id": raw_payload.id,
+            }
+        except Exception:
+            session.rollback()
+            raise
