@@ -1,13 +1,17 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, Text, func
+from sqlalchemy import JSON, DateTime, Index, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
 
 
 class ApiPayload(Base):
-    __tablename__ = 'api_payload'
+    __tablename__ = "api_payload"
+    __table_args__ = (
+        UniqueConstraint("payload_hash", name="uq_api_payload_payload_hash"),
+        Index("ix_api_payload_captured_at", "captured_at"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     source_name: Mapped[str] = mapped_column(Text, nullable=False)
