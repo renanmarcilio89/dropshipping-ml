@@ -30,9 +30,8 @@ class TrendRepository:
         ]
 
         self.session.add_all(rows)
-        self.session.commit()
         return len(rows)
-    
+
     def list_recent_terms(self, limit: int = 100) -> list[str]:
         stmt = (
             select(TrendSnapshot.term)
