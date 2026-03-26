@@ -36,6 +36,6 @@ class RawPayloadRepository:
             captured_at=captured_at,
         )
         self.session.add(row)
-        self.session.commit()
+        self.session.flush()
         self.session.refresh(row)
         return row
