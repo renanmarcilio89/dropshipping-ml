@@ -11,10 +11,12 @@ from app.core.settings import get_settings
 from app.db.session import SessionLocal, engine
 from app.jobs.build_candidates import BuildCandidatesJob
 from app.jobs.sync_trends import SyncTrendsJob
+from app.jobs.qualify_candidates import QualifyCandidatesJob
 from app.repositories.candidate_repository import CandidateRepository
 from app.repositories.meli_credentials import MeliCredentialRepository
 from app.repositories.raw_payload_repository import RawPayloadRepository
 from app.repositories.trend_repository import TrendRepository
+from app.services.candidate_qualification_service import CandidateQualificationService
 from app.services.candidate_service import CandidateService
 from app.services.meli_auth_service import MeliAuthService
 from app.services.search_service import SearchService
@@ -110,6 +112,19 @@ def build_candidates(trend_limit: int = 100) -> None:
             candidate_service=CandidateService(),
         )
         typer.echo(json.dumps(job.run(trend_limit=trend_limit), ensure_ascii=False, indent=2))
+    finally:
+        db.close()
+
+
+@app.command("qualify-candidates")
+def qualify_candidates(limit: int = 100) -> None:
+    db = SessionLocal()
+    try:
+        job = QualifyCandidatesJob(
+            candidate_repository=CandidateRepository(db),
+            qualification_service=CandidateQualificationService(),
+        )
+        typer.echo(json.dumps(job.run(limit=limit), ensure_ascii=False, indent=2))
     finally:
         db.close()
 

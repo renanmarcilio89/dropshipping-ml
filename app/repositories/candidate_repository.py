@@ -27,6 +27,7 @@ class CandidateRepository:
                     candidate_type="product_term",
                     canonical_name=normalized,
                     status="pending_enrichment",
+                    qualification_status="pending",
                     first_seen_at=now,
                     last_seen_at=now,
                 )
@@ -40,7 +41,38 @@ class CandidateRepository:
         self.session.commit()
         return created_or_updated
 
+    def list_pending_qualification(self, limit: int = 100) -> list[Candidate]:
+        stmt = (
+            select(Candidate)
+            .where(Candidate.qualification_status == "pending")
+            .order_by(Candidate.id.asc())
+            .limit(limit)
+        )
+        return list(self.session.execute(stmt).scalars().all())
+
+    def apply_qualification(
+        self,
+        candidate: Candidate,
+        *,
+        qualification_status: str,
+        qualification_reason: str,
+    ) -> None:
+        now = datetime.now(timezone.utc)
+
+        candidate.qualification_status = qualification_status
+        candidate.qualification_reason = qualification_reason
+        candidate.last_qualified_at = now
+
+        if qualification_status == "approved":
+            candidate.status = "approved_for_enrichment"
+        elif qualification_status == "rejected":
+            candidate.status = "rejected"
+        else:
+            candidate.status = "needs_review"
+
+    def commit(self) -> None:
+        self.session.commit()
+
     @staticmethod
     def _normalize_term(term: str) -> str:
-        normalized = " ".join(term.strip().lower().split())
-        return normalized
+        return " ".join(term.strip().lower().split())
