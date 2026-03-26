@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, Numeric, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.candidate_status import CandidateQualificationStatus, CandidateStatus, CandidateType
@@ -9,6 +9,10 @@ from app.models.base import Base
 
 class TrendSnapshot(Base):
     __tablename__ = "trend_snapshot"
+    __table_args__ = (
+        Index("ix_trend_snapshot_captured_at", "captured_at"),
+        Index("ix_trend_snapshot_site_id_captured_at", "site_id", "captured_at"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     site_id: Mapped[str] = mapped_column(Text, nullable=False)
@@ -24,6 +28,11 @@ class TrendSnapshot(Base):
 
 class Candidate(Base):
     __tablename__ = "candidate"
+    __table_args__ = (
+        UniqueConstraint("normalized_term", name="uq_candidate_normalized_term"),
+        Index("ix_candidate_status", "status"),
+        Index("ix_candidate_qualification_status", "qualification_status"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     source_term: Mapped[str] = mapped_column(Text, nullable=False)
