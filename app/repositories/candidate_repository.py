@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.candidate_status import CandidateQualificationStatus, CandidateStatus
+from app.core.text_normalization import normalize_term
 from app.models.market import Candidate
 
 
@@ -15,7 +17,7 @@ class CandidateRepository:
         created_or_updated = 0
 
         for term in terms:
-            normalized = self._normalize_term(term)
+            normalized = normalize_term(term)
 
             stmt = select(Candidate).where(Candidate.normalized_term == normalized)
             existing = self.session.execute(stmt).scalars().first()
@@ -26,8 +28,8 @@ class CandidateRepository:
                     normalized_term=normalized,
                     candidate_type="product_term",
                     canonical_name=normalized,
-                    status="pending_enrichment",
-                    qualification_status="pending",
+                    status=CandidateStatus.PENDING_ENRICHMENT,
+                    qualification_status=CandidateQualificationStatus.PENDING,
                     first_seen_at=now,
                     last_seen_at=now,
                 )
@@ -38,13 +40,12 @@ class CandidateRepository:
             existing.last_seen_at = now
             created_or_updated += 1
 
-        self.session.commit()
         return created_or_updated
 
     def list_pending_qualification(self, limit: int = 100) -> list[Candidate]:
         stmt = (
             select(Candidate)
-            .where(Candidate.qualification_status == "pending")
+            .where(Candidate.qualification_status == CandidateQualificationStatus.PENDING)
             .order_by(Candidate.id.asc())
             .limit(limit)
         )
@@ -63,16 +64,9 @@ class CandidateRepository:
         candidate.qualification_reason = qualification_reason
         candidate.last_qualified_at = now
 
-        if qualification_status == "approved":
-            candidate.status = "approved_for_enrichment"
-        elif qualification_status == "rejected":
-            candidate.status = "rejected"
+        if qualification_status == CandidateQualificationStatus.APPROVED:
+            candidate.status = CandidateStatus.APPROVED_FOR_ENRICHMENT
+        elif qualification_status == CandidateQualificationStatus.REJECTED:
+            candidate.status = CandidateStatus.REJECTED
         else:
-            candidate.status = "needs_review"
-
-    def commit(self) -> None:
-        self.session.commit()
-
-    @staticmethod
-    def _normalize_term(term: str) -> str:
-        return " ".join(term.strip().lower().split())
+            candidate.status = CandidateStatus.NEEDS_REVIEW
