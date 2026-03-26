@@ -1,5 +1,6 @@
 from app.repositories.candidate_repository import CandidateRepository
 from app.services.candidate_qualification_service import CandidateQualificationService
+from app.core.candidate_status import CandidateQualificationStatus
 
 
 class QualifyCandidatesJob:
@@ -12,33 +13,39 @@ class QualifyCandidatesJob:
         self.qualification_service = qualification_service
 
     def run(self, limit: int = 100) -> dict:
-        candidates = self.candidate_repository.list_pending_qualification(limit=limit)
+        session = self.candidate_repository.session
 
-        approved = 0
-        rejected = 0
-        needs_review = 0
+        try:
+            candidates = self.candidate_repository.list_pending_qualification(limit=limit)
 
-        for candidate in candidates:
-            decision = self.qualification_service.qualify(candidate.normalized_term)
+            approved = 0
+            rejected = 0
+            needs_review = 0
 
-            self.candidate_repository.apply_qualification(
-                candidate,
-                qualification_status=decision.qualification_status,
-                qualification_reason=decision.reason,
-            )
+            for candidate in candidates:
+                decision = self.qualification_service.qualify(candidate.normalized_term)
 
-            if decision.qualification_status == "approved":
-                approved += 1
-            elif decision.qualification_status == "rejected":
-                rejected += 1
-            else:
-                needs_review += 1
+                self.candidate_repository.apply_qualification(
+                    candidate,
+                    qualification_status=decision.qualification_status,
+                    qualification_reason=decision.reason,
+                )
 
-        self.candidate_repository.commit()
+                if decision.qualification_status == CandidateQualificationStatus.APPROVED.value:
+                    approved += 1
+                elif decision.qualification_status == CandidateQualificationStatus.REJECTED.value:
+                    rejected += 1
+                else:
+                    needs_review += 1
 
-        return {
-            "candidates_read": len(candidates),
-            "approved": approved,
-            "rejected": rejected,
-            "needs_review": needs_review,
-        }
+            session.commit()
+
+            return {
+                "candidates_read": len(candidates),
+                "approved": approved,
+                "rejected": rejected,
+                "needs_review": needs_review,
+            }
+        except Exception:
+            session.rollback()
+            raise
