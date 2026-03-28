@@ -4,12 +4,27 @@ from typing import Any
 
 import httpx
 from sqlalchemy.orm import Session
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_fixed
 
 from app.clients.meli_api_client import MeliApiClient
 from app.core.constants import DEFAULT_LIMIT, MULTIGET_MAX_ITEMS
 from app.core.exceptions import ConfigurationError, MeliAPIError
 from app.core.settings import Settings
+
+
+def _should_retry_meli_error(exception: BaseException) -> bool:
+    if isinstance(exception, httpx.HTTPError):
+        return True
+
+    if not isinstance(exception, MeliAPIError):
+        return False
+
+    status_code = getattr(exception, "status_code", None)
+
+    if status_code is None:
+        return False
+
+    return status_code == 429 or status_code >= 500
 
 
 class MercadoLivreClient:
@@ -50,7 +65,7 @@ class MercadoLivreClient:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_fixed(1),
-        retry=retry_if_exception_type((httpx.HTTPError, MeliAPIError)),
+        retry=retry_if_exception(_should_retry_meli_error),
         reraise=True,
     )
     def _get(
@@ -77,7 +92,10 @@ class MercadoLivreClient:
             )
 
         if response.status_code >= 400:
-            raise MeliAPIError(f'Mercado Livre API error {response.status_code}: {response.text}')
+            raise MeliAPIError(
+                f"Mercado Livre API error {response.status_code}: {response.text}",
+                status_code=response.status_code,
+            )
 
         return response.json()
 
@@ -101,7 +119,7 @@ class MercadoLivreClient:
         if extra_params:
             params.update(extra_params)
 
-        response = self._get(f'/sites/{site}/search', params=params, authenticated=True)
+        response = self._get(f'/sites/{site}/search', params=params, authenticated=False)
         if isinstance(response, dict):
             return response
         raise MeliAPIError('Resposta inesperada em /sites/{site}/search.')
@@ -158,3 +176,28 @@ class MercadoLivreClient:
         if isinstance(response, dict):
             return response
         raise MeliAPIError("Resposta inesperada em /users/{user_id}/items/search.")
+
+    def predict_category(
+        self,
+        query: str,
+        site_id: str | None = None,
+        limit: int = 3,
+    ) -> list[dict[str, Any]]:
+        site = site_id or self.settings.meli_site_id
+        response = self._get(
+            f"/sites/{site}/domain_discovery/search",
+            params={"q": query, "limit": limit},
+            authenticated=False,
+        )
+        if isinstance(response, list):
+            return response
+        raise MeliAPIError("Resposta inesperada em /sites/{site}/domain_discovery/search.")
+
+    def get_item(
+        self,
+        item_id: str,
+    ) -> dict[str, Any]:
+        response = self._get(f"/items/{item_id}", authenticated=False)
+        if isinstance(response, dict):
+            return response
+        raise MeliAPIError("Resposta inesperada em /items/{item_id}.")
