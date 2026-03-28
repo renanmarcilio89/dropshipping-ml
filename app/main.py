@@ -10,12 +10,15 @@ from app.core.logging import configure_logging
 from app.core.settings import get_settings
 from app.db.session import SessionLocal, engine
 from app.jobs.build_candidates import BuildCandidatesJob
+from app.jobs.enrich_candidates import EnrichCandidatesJob
 from app.jobs.sync_trends import SyncTrendsJob
 from app.jobs.qualify_candidates import QualifyCandidatesJob
+from app.repositories.candidate_market_snapshot_repository import CandidateMarketSnapshotRepository
 from app.repositories.candidate_repository import CandidateRepository
 from app.repositories.meli_credentials import MeliCredentialRepository
 from app.repositories.raw_payload_repository import RawPayloadRepository
 from app.repositories.trend_repository import TrendRepository
+from app.services.candidate_enrichment_service import CandidateEnrichmentService
 from app.services.candidate_qualification_service import CandidateQualificationService
 from app.services.candidate_service import CandidateService
 from app.services.meli_auth_service import MeliAuthService
@@ -126,6 +129,33 @@ def qualify_candidates(limit: int = 100) -> None:
         )
         typer.echo(json.dumps(job.run(limit=limit), ensure_ascii=False, indent=2))
     finally:
+        db.close()
+
+
+@app.command("enrich-candidates")
+def enrich_candidates(
+    limit: int = 20,
+    search_limit: int = 20,
+    site_id: str = settings.meli_site_id,
+) -> None:
+    db = SessionLocal()
+    client = MercadoLivreClient(settings, db)
+    try:
+        job = EnrichCandidatesJob(
+            candidate_repository=CandidateRepository(db),
+            snapshot_repository=CandidateMarketSnapshotRepository(db),
+            raw_payload_repository=RawPayloadRepository(db),
+            enrichment_service=CandidateEnrichmentService(client),
+        )
+        typer.echo(
+            json.dumps(
+                job.run(site_id=site_id, limit=limit, search_limit=search_limit),
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+    finally:
+        client.close()
         db.close()
 
 
