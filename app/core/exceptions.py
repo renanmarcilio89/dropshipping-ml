@@ -6,5 +6,7 @@ class ConfigurationError(PipelineError):
     """Raised when configuration is invalid or incomplete."""
 
 
-class MeliAPIError(PipelineError):
-    """Raised for Mercado Livre API failures."""
+class MeliAPIError(Exception):
+    def __init__(self, message: str, status_code: int | None = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
