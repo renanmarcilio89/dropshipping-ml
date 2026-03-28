@@ -6,7 +6,7 @@ from sqlalchemy import engine_from_config, pool
 from app.core.settings import get_settings
 from app.models import Base
 from app.models.auth import MeliCredential  # noqa: F401
-from app.models.market import Candidate, OpportunityScore, TrendSnapshot  # noqa: F401
+from app.models.market import Candidate, CandidateMarketSnapshot, OpportunityScore, TrendSnapshot  # noqa: F401
 from app.models.raw import ApiPayload  # noqa: F401
 
 config = context.config
