@@ -50,12 +50,57 @@ class Candidate(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    last_enriched_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    enrichment_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     first_seen_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
     )
     last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
+class CandidateMarketSnapshot(Base):
+    __tablename__ = "candidate_market_snapshot"
+    __table_args__ = (
+        Index("ix_candidate_market_snapshot_candidate_id", "candidate_id"),
+        Index("ix_candidate_market_snapshot_captured_at", "captured_at"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    candidate_id: Mapped[int] = mapped_column(ForeignKey("candidate.id"), nullable=False)
+    site_id: Mapped[str] = mapped_column(Text, nullable=False)
+    query_term: Mapped[str] = mapped_column(Text, nullable=False)
+
+    predicted_domain_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    predicted_domain_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    predicted_category_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    predicted_category_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    search_total: Mapped[int | None] = mapped_column(nullable=True)
+    sample_size: Mapped[int] = mapped_column(nullable=False, default=0)
+    unique_seller_count: Mapped[int] = mapped_column(nullable=False, default=0)
+
+    price_min: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    price_max: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    price_avg: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    price_median: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+
+    free_shipping_ratio: Mapped[float | None] = mapped_column(Numeric(8, 4), nullable=True)
+    catalog_listing_ratio: Mapped[float | None] = mapped_column(Numeric(8, 4), nullable=True)
+    official_store_ratio: Mapped[float | None] = mapped_column(Numeric(8, 4), nullable=True)
+    new_condition_ratio: Mapped[float | None] = mapped_column(Numeric(8, 4), nullable=True)
+
+    category_total_items: Mapped[int | None] = mapped_column(nullable=True)
+
+    captured_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
