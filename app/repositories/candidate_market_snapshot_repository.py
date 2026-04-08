@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from datetime import datetime
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.market import CandidateMarketSnapshot
@@ -71,3 +74,14 @@ class CandidateMarketSnapshotRepository:
         self.session.flush()
         self.session.refresh(row)
         return row
+
+    def get_latest_by_candidate_id(self, candidate_id: int) -> CandidateMarketSnapshot | None:
+        stmt = (
+            select(CandidateMarketSnapshot)
+            .where(CandidateMarketSnapshot.candidate_id == candidate_id)
+            .order_by(
+                CandidateMarketSnapshot.captured_at.desc(),
+                CandidateMarketSnapshot.id.desc(),
+            )
+        )
+        return self.session.execute(stmt).scalars().first()

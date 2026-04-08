@@ -70,11 +70,20 @@ class CandidateRepository:
             candidate.status = CandidateStatus.REJECTED
         else:
             candidate.status = CandidateStatus.NEEDS_REVIEW
-    
+
     def list_ready_for_enrichment(self, limit: int = 100) -> list[Candidate]:
         stmt = (
             select(Candidate)
             .where(Candidate.status == CandidateStatus.APPROVED_FOR_ENRICHMENT)
+            .order_by(Candidate.id.asc())
+            .limit(limit)
+        )
+        return list(self.session.execute(stmt).scalars().all())
+
+    def list_ready_for_scoring(self, limit: int = 100) -> list[Candidate]:
+        stmt = (
+            select(Candidate)
+            .where(Candidate.status == CandidateStatus.ENRICHED)
             .order_by(Candidate.id.asc())
             .limit(limit)
         )
