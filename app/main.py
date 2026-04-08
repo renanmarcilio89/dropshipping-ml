@@ -11,11 +11,13 @@ from app.db.session import SessionLocal, engine
 from app.jobs.build_candidates import BuildCandidatesJob
 from app.jobs.enrich_candidates import EnrichCandidatesJob
 from app.jobs.qualify_candidates import QualifyCandidatesJob
+from app.jobs.rank_opportunities import RankOpportunitiesJob
 from app.jobs.score_candidates import ScoreCandidatesJob
 from app.jobs.sync_trends import SyncTrendsJob
 from app.repositories.candidate_market_snapshot_repository import CandidateMarketSnapshotRepository
 from app.repositories.candidate_repository import CandidateRepository
 from app.repositories.meli_credentials import MeliCredentialRepository
+from app.repositories.opportunity_ranking_repository import OpportunityRankingRepository
 from app.repositories.opportunity_score_repository import OpportunityScoreRepository
 from app.repositories.raw_payload_repository import RawPayloadRepository
 from app.repositories.trend_repository import TrendRepository
@@ -23,6 +25,7 @@ from app.services.candidate_enrichment_service import CandidateEnrichmentService
 from app.services.candidate_qualification_service import CandidateQualificationService
 from app.services.candidate_service import CandidateService
 from app.services.meli_auth_service import MeliAuthService
+from app.services.opportunity_ranking_service import OpportunityRankingService
 from app.services.opportunity_scoring_service import OpportunityScoringService
 from app.services.search_service import SearchService
 
@@ -169,6 +172,25 @@ def score_candidates(limit: int = 100) -> None:
             snapshot_repository=CandidateMarketSnapshotRepository(db),
             opportunity_score_repository=OpportunityScoreRepository(db),
             scoring_service=OpportunityScoringService(),
+        )
+        typer.echo(
+            json.dumps(
+                job.run(limit=limit),
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+    finally:
+        db.close()
+
+
+@app.command("rank-opportunities")
+def rank_opportunities(limit: int = 20) -> None:
+    db = SessionLocal()
+    try:
+        job = RankOpportunitiesJob(
+            ranking_repository=OpportunityRankingRepository(db),
+            ranking_service=OpportunityRankingService(),
         )
         typer.echo(
             json.dumps(
