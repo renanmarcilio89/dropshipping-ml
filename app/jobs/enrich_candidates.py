@@ -18,7 +18,7 @@ class EnrichCandidatesJob:
         self.raw_payload_repository = raw_payload_repository
         self.enrichment_service = enrichment_service
 
-    def run(self, *, site_id: str, limit: int = 20, search_limit: int = 20) -> dict:
+    def run(self, *, site_id: str, limit: int = 20) -> dict:
         session = self.candidate_repository.session
 
         candidates = self.candidate_repository.list_ready_for_enrichment(limit=limit)
@@ -31,7 +31,6 @@ class EnrichCandidatesJob:
                 result = self.enrichment_service.enrich(
                     query=candidate.normalized_term,
                     site_id=site_id,
-                    search_limit=search_limit,
                 )
 
                 self.raw_payload_repository.save(
@@ -41,26 +40,6 @@ class EnrichCandidatesJob:
                     payload_hash=self.enrichment_service.payload_hash(result.prediction_payload),
                     captured_at=result.captured_at,
                     request_params={"q": candidate.normalized_term, "limit": 3},
-                    site_id=site_id,
-                )
-
-                self.raw_payload_repository.save(
-                    source_name="site_search",
-                    endpoint=f"/sites/{site_id}/search",
-                    payload=result.search_payload,
-                    payload_hash=self.enrichment_service.payload_hash(result.search_payload),
-                    captured_at=result.captured_at,
-                    request_params={"q": candidate.normalized_term, "limit": search_limit},
-                    site_id=site_id,
-                )
-
-                self.raw_payload_repository.save(
-                    source_name="items_multiget",
-                    endpoint="/items",
-                    payload=result.items_payload,
-                    payload_hash=self.enrichment_service.payload_hash(result.items_payload),
-                    captured_at=result.captured_at,
-                    request_params=None,
                     site_id=site_id,
                 )
 
@@ -75,33 +54,50 @@ class EnrichCandidatesJob:
                         site_id=site_id,
                     )
 
+                if result.category_attributes_payload and result.predicted_category_id is not None:
+                    self.raw_payload_repository.save(
+                        source_name="category_attributes",
+                        endpoint=f"/categories/{result.predicted_category_id}/attributes",
+                        payload=result.category_attributes_payload,
+                        payload_hash=self.enrichment_service.payload_hash(result.category_attributes_payload),
+                        captured_at=result.captured_at,
+                        request_params=None,
+                        site_id=site_id,
+                    )
+
                 self.snapshot_repository.save(
                     candidate_id=candidate.id,
                     site_id=site_id,
                     query_term=candidate.normalized_term,
+                    prediction_found=result.prediction_found,
                     predicted_domain_id=result.predicted_domain_id,
                     predicted_domain_name=result.predicted_domain_name,
                     predicted_category_id=result.predicted_category_id,
                     predicted_category_name=result.predicted_category_name,
-                    search_total=result.search_total,
-                    sample_size=result.sample_size,
-                    unique_seller_count=result.unique_seller_count,
-                    price_min=result.price_min,
-                    price_max=result.price_max,
-                    price_avg=result.price_avg,
-                    price_median=result.price_median,
-                    free_shipping_ratio=result.free_shipping_ratio,
-                    catalog_listing_ratio=result.catalog_listing_ratio,
-                    official_store_ratio=result.official_store_ratio,
-                    new_condition_ratio=result.new_condition_ratio,
+                    predicted_attributes_count=result.predicted_attributes_count,
+                    predicted_attributes=result.predicted_attributes,
+                    category_path=result.category_path,
+                    category_path_text=result.category_path_text,
+                    category_depth=result.category_depth,
                     category_total_items=result.category_total_items,
+                    catalog_domain=result.catalog_domain,
+                    listing_allowed=result.listing_allowed,
+                    buying_modes=result.buying_modes,
+                    required_attributes_count=result.required_attributes_count,
+                    important_attributes_count=result.important_attributes_count,
+                    attribute_types_summary=result.attribute_types_summary,
+                    top_relevant_attributes=result.top_relevant_attributes,
+                    term_token_count=result.term_token_count,
+                    term_specificity_level=result.term_specificity_level,
+                    prediction_confidence_score=result.prediction_confidence_score,
+                    prediction_confidence_level=result.prediction_confidence_level,
                     captured_at=result.captured_at,
                 )
 
                 self.candidate_repository.mark_enriched(
                     candidate,
                     enriched_at=result.captured_at,
-                    reason="enriquecimento concluido com sucesso",
+                    reason="enriquecimento estrutural concluido com sucesso",
                 )
 
                 session.commit()

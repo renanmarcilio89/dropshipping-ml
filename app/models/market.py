@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Numeric, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, JSON, Numeric, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.candidate_status import CandidateQualificationStatus, CandidateStatus, CandidateType
@@ -72,6 +72,7 @@ class CandidateMarketSnapshot(Base):
     __table_args__ = (
         Index("ix_candidate_market_snapshot_candidate_id", "candidate_id"),
         Index("ix_candidate_market_snapshot_captured_at", "captured_at"),
+        Index("ix_candidate_market_snapshot_predicted_category_id", "predicted_category_id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -79,26 +80,35 @@ class CandidateMarketSnapshot(Base):
     site_id: Mapped[str] = mapped_column(Text, nullable=False)
     query_term: Mapped[str] = mapped_column(Text, nullable=False)
 
+    prediction_found: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
     predicted_domain_id: Mapped[str | None] = mapped_column(Text, nullable=True)
     predicted_domain_name: Mapped[str | None] = mapped_column(Text, nullable=True)
     predicted_category_id: Mapped[str | None] = mapped_column(Text, nullable=True)
     predicted_category_name: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    search_total: Mapped[int | None] = mapped_column(nullable=True)
-    sample_size: Mapped[int] = mapped_column(nullable=False, default=0)
-    unique_seller_count: Mapped[int] = mapped_column(nullable=False, default=0)
+    predicted_attributes_count: Mapped[int] = mapped_column(nullable=False, default=0)
+    predicted_attributes: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
-    price_min: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
-    price_max: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
-    price_avg: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
-    price_median: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
-
-    free_shipping_ratio: Mapped[float | None] = mapped_column(Numeric(8, 4), nullable=True)
-    catalog_listing_ratio: Mapped[float | None] = mapped_column(Numeric(8, 4), nullable=True)
-    official_store_ratio: Mapped[float | None] = mapped_column(Numeric(8, 4), nullable=True)
-    new_condition_ratio: Mapped[float | None] = mapped_column(Numeric(8, 4), nullable=True)
-
+    category_path: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    category_path_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    category_depth: Mapped[int | None] = mapped_column(nullable=True)
     category_total_items: Mapped[int | None] = mapped_column(nullable=True)
+
+    catalog_domain: Mapped[str | None] = mapped_column(Text, nullable=True)
+    listing_allowed: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    buying_modes: Mapped[list | None] = mapped_column(JSON, nullable=True)
+
+    required_attributes_count: Mapped[int] = mapped_column(nullable=False, default=0)
+    important_attributes_count: Mapped[int] = mapped_column(nullable=False, default=0)
+    attribute_types_summary: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    top_relevant_attributes: Mapped[list | None] = mapped_column(JSON, nullable=True)
+
+    term_token_count: Mapped[int] = mapped_column(nullable=False, default=0)
+    term_specificity_level: Mapped[str] = mapped_column(Text, nullable=False, default="low")
+
+    prediction_confidence_score: Mapped[float | None] = mapped_column(Numeric(8, 4), nullable=True)
+    prediction_confidence_level: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     captured_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

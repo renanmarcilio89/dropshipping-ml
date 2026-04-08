@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, timezone
 
 import typer
 from sqlalchemy import text
@@ -11,8 +10,8 @@ from app.core.settings import get_settings
 from app.db.session import SessionLocal, engine
 from app.jobs.build_candidates import BuildCandidatesJob
 from app.jobs.enrich_candidates import EnrichCandidatesJob
-from app.jobs.sync_trends import SyncTrendsJob
 from app.jobs.qualify_candidates import QualifyCandidatesJob
+from app.jobs.sync_trends import SyncTrendsJob
 from app.repositories.candidate_market_snapshot_repository import CandidateMarketSnapshotRepository
 from app.repositories.candidate_repository import CandidateRepository
 from app.repositories.meli_credentials import MeliCredentialRepository
@@ -135,7 +134,6 @@ def qualify_candidates(limit: int = 100) -> None:
 @app.command("enrich-candidates")
 def enrich_candidates(
     limit: int = 20,
-    search_limit: int = 20,
     site_id: str = settings.meli_site_id,
 ) -> None:
     db = SessionLocal()
@@ -149,7 +147,7 @@ def enrich_candidates(
         )
         typer.echo(
             json.dumps(
-                job.run(site_id=site_id, limit=limit, search_limit=search_limit),
+                job.run(site_id=site_id, limit=limit),
                 ensure_ascii=False,
                 indent=2,
             )
