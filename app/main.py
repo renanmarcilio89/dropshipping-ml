@@ -18,6 +18,7 @@ from app.jobs.sync_trends import SyncTrendsJob
 from app.repositories.candidate_market_snapshot_repository import CandidateMarketSnapshotRepository
 from app.repositories.candidate_repository import CandidateRepository
 from app.repositories.meli_credentials import MeliCredentialRepository
+from app.repositories.opportunity_alert_repository import OpportunityAlertRepository
 from app.repositories.opportunity_ranking_repository import OpportunityRankingRepository
 from app.repositories.opportunity_score_repository import OpportunityScoreRepository
 from app.repositories.raw_payload_repository import RawPayloadRepository
@@ -77,9 +78,13 @@ def auth_bootstrap(code: str) -> None:
             expires_at=expires_at,
             nickname=current_user.nickname,
         )
+        db.commit()
         typer.echo(
             f'Tokens salvos com sucesso para user_id={stored.user_id} nickname={stored.nickname}'
         )
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -121,7 +126,12 @@ def build_candidates(trend_limit: int = 100) -> None:
             candidate_repository=CandidateRepository(db),
             candidate_service=CandidateService(),
         )
-        typer.echo(json.dumps(job.run(trend_limit=trend_limit), ensure_ascii=False, indent=2))
+        result = job.run(trend_limit=trend_limit)
+        db.commit()
+        typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -134,7 +144,12 @@ def qualify_candidates(limit: int = 100) -> None:
             candidate_repository=CandidateRepository(db),
             qualification_service=CandidateQualificationService(),
         )
-        typer.echo(json.dumps(job.run(limit=limit), ensure_ascii=False, indent=2))
+        result = job.run(limit=limit)
+        db.commit()
+        typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -153,13 +168,18 @@ def enrich_candidates(
             raw_payload_repository=RawPayloadRepository(db),
             enrichment_service=CandidateEnrichmentService(client),
         )
+        result = job.run(site_id=site_id, limit=limit)
+        db.commit()
         typer.echo(
             json.dumps(
-                job.run(site_id=site_id, limit=limit),
+                result,
                 ensure_ascii=False,
                 indent=2,
             )
         )
+    except Exception:
+        db.rollback()
+        raise
     finally:
         client.close()
         db.close()
@@ -175,13 +195,18 @@ def score_candidates(limit: int = 100) -> None:
             opportunity_score_repository=OpportunityScoreRepository(db),
             scoring_service=OpportunityScoringService(),
         )
+        result = job.run(limit=limit)
+        db.commit()
         typer.echo(
             json.dumps(
-                job.run(limit=limit),
+                result,
                 ensure_ascii=False,
                 indent=2,
             )
         )
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -237,15 +262,22 @@ def alert_opportunities(limit: int = 50) -> None:
             ranking_repository=OpportunityRankingRepository(db),
             ranking_service=OpportunityRankingService(),
             alert_service=OpportunityAlertService(),
+            alert_repository=OpportunityAlertRepository(db),
         )
+
+        result = job.run(limit=limit)
+        db.commit()
 
         typer.echo(
             json.dumps(
-                job.run(limit=limit),
+                result,
                 ensure_ascii=False,
                 indent=2,
             )
         )
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 

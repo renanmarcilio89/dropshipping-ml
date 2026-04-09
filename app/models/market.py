@@ -133,3 +133,36 @@ class OpportunityScore(Base):
         nullable=False,
         server_default=func.now(),
     )
+
+
+class OpportunityAlert(Base):
+    __tablename__ = "opportunity_alert"
+    __table_args__ = (
+        UniqueConstraint("alert_hash", name="uq_opportunity_alert_alert_hash"),
+        Index("ix_opportunity_alert_candidate_id", "candidate_id"),
+        Index("ix_opportunity_alert_status", "status"),
+        Index("ix_opportunity_alert_created_at", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    candidate_id: Mapped[int] = mapped_column(ForeignKey("candidate.id"), nullable=False)
+
+    alert_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    alert_version: Mapped[str] = mapped_column(Text, nullable=False)
+    score_version: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    final_score: Mapped[float] = mapped_column(Numeric(10, 4), nullable=False)
+    confidence_level: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    category_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    category_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    action: Mapped[str] = mapped_column(Text, nullable=False)
+    reason_payload: Mapped[list] = mapped_column(JSON, nullable=False)
+    status: Mapped[str] = mapped_column(Text, nullable=False, default="open")
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
