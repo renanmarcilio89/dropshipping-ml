@@ -10,7 +10,15 @@ class OpportunityRankingRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def list_top_opportunities(self, limit: int = 20) -> list:
+    def list_top_opportunities(
+        self,
+        *,
+        limit: int = 20,
+        min_final_score: float | None = None,
+        confidence_level: str | None = None,
+        listing_allowed: bool | None = None,
+        max_category_total_items: int | None = None,
+    ) -> list:
         latest_score_subquery = (
             select(
                 OpportunityScore.candidate_id.label("candidate_id"),
@@ -70,12 +78,31 @@ class OpportunityRankingRepository:
                 (CandidateMarketSnapshot.candidate_id == latest_snapshot_subquery.c.candidate_id)
                 & (CandidateMarketSnapshot.captured_at == latest_snapshot_subquery.c.max_snapshot_at),
             )
-            .order_by(
-                OpportunityScore.final_score.desc(),
-                OpportunityScore.demand_score.desc(),
-                Candidate.id.asc(),
-            )
-            .limit(limit)
         )
+
+        if min_final_score is not None:
+            stmt = stmt.where(OpportunityScore.final_score >= min_final_score)
+
+        if confidence_level is not None:
+            stmt = stmt.where(
+                CandidateMarketSnapshot.prediction_confidence_level == confidence_level
+            )
+
+        if listing_allowed is not None:
+            stmt = stmt.where(
+                CandidateMarketSnapshot.listing_allowed == listing_allowed
+            )
+
+        if max_category_total_items is not None:
+            stmt = stmt.where(
+                CandidateMarketSnapshot.category_total_items.is_not(None),
+                CandidateMarketSnapshot.category_total_items <= max_category_total_items,
+            )
+
+        stmt = stmt.order_by(
+            OpportunityScore.final_score.desc(),
+            OpportunityScore.demand_score.desc(),
+            Candidate.id.asc(),
+        ).limit(limit)
 
         return list(self.session.execute(stmt).all())

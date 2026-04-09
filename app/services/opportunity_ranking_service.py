@@ -36,6 +36,19 @@ class OpportunityRankingService:
         return output
 
     @staticmethod
+    def normalize_confidence_level(value: str | None) -> str | None:
+        if value is None:
+            return None
+
+        normalized = value.strip().lower()
+        if normalized in {"high", "medium", "low", "none"}:
+            return normalized
+
+        raise ValueError(
+            "confidence_level inválido. Use: high, medium, low ou none."
+        )
+
+    @staticmethod
     def _to_float(value: Any) -> float | None:
         if value is None:
             return None

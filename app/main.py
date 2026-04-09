@@ -185,7 +185,25 @@ def score_candidates(limit: int = 100) -> None:
 
 
 @app.command("rank-opportunities")
-def rank_opportunities(limit: int = 20) -> None:
+def rank_opportunities(
+    limit: int = 20,
+    min_final_score: float | None = typer.Option(
+        None,
+        help="Retorna apenas oportunidades com final_score maior ou igual a este valor.",
+    ),
+    confidence_level: str | None = typer.Option(
+        None,
+        help="Filtra por nível de confiança: high, medium, low ou none.",
+    ),
+    listing_allowed: bool | None = typer.Option(
+        None,
+        help="Filtra por categorias com listing_allowed true/false.",
+    ),
+    max_category_total_items: int | None = typer.Option(
+        None,
+        help="Filtra categorias com até este total de itens.",
+    ),
+) -> None:
     db = SessionLocal()
     try:
         job = RankOpportunitiesJob(
@@ -194,7 +212,13 @@ def rank_opportunities(limit: int = 20) -> None:
         )
         typer.echo(
             json.dumps(
-                job.run(limit=limit),
+                job.run(
+                    limit=limit,
+                    min_final_score=min_final_score,
+                    confidence_level=confidence_level,
+                    listing_allowed=listing_allowed,
+                    max_category_total_items=max_category_total_items,
+                ),
                 ensure_ascii=False,
                 indent=2,
             )
