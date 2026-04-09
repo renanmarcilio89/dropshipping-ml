@@ -8,6 +8,7 @@ from app.clients.mercadolivre_client import MercadoLivreClient
 from app.core.logging import configure_logging
 from app.core.settings import get_settings
 from app.db.session import SessionLocal, engine
+from app.jobs.alert_opportunities import AlertOpportunitiesJob
 from app.jobs.build_candidates import BuildCandidatesJob
 from app.jobs.enrich_candidates import EnrichCandidatesJob
 from app.jobs.qualify_candidates import QualifyCandidatesJob
@@ -25,6 +26,7 @@ from app.services.candidate_enrichment_service import CandidateEnrichmentService
 from app.services.candidate_qualification_service import CandidateQualificationService
 from app.services.candidate_service import CandidateService
 from app.services.meli_auth_service import MeliAuthService
+from app.services.opportunity_alert_service import OpportunityAlertService
 from app.services.opportunity_ranking_service import OpportunityRankingService
 from app.services.opportunity_scoring_service import OpportunityScoringService
 from app.services.search_service import SearchService
@@ -219,6 +221,27 @@ def rank_opportunities(
                     listing_allowed=listing_allowed,
                     max_category_total_items=max_category_total_items,
                 ),
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+    finally:
+        db.close()
+
+
+@app.command("alert-opportunities")
+def alert_opportunities(limit: int = 50) -> None:
+    db = SessionLocal()
+    try:
+        job = AlertOpportunitiesJob(
+            ranking_repository=OpportunityRankingRepository(db),
+            ranking_service=OpportunityRankingService(),
+            alert_service=OpportunityAlertService(),
+        )
+
+        typer.echo(
+            json.dumps(
+                job.run(limit=limit),
                 ensure_ascii=False,
                 indent=2,
             )
