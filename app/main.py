@@ -11,6 +11,7 @@ from app.db.session import SessionLocal, engine
 from app.jobs.alert_opportunities import AlertOpportunitiesJob
 from app.jobs.build_candidates import BuildCandidatesJob
 from app.jobs.enrich_candidates import EnrichCandidatesJob
+from app.jobs.list_alerts import ListAlertsJob
 from app.jobs.qualify_candidates import QualifyCandidatesJob
 from app.jobs.rank_opportunities import RankOpportunitiesJob
 from app.jobs.score_candidates import ScoreCandidatesJob
@@ -18,6 +19,7 @@ from app.jobs.sync_trends import SyncTrendsJob
 from app.repositories.candidate_market_snapshot_repository import CandidateMarketSnapshotRepository
 from app.repositories.candidate_repository import CandidateRepository
 from app.repositories.meli_credentials import MeliCredentialRepository
+from app.repositories.opportunity_alert_query_repository import OpportunityAlertQueryRepository
 from app.repositories.opportunity_alert_repository import OpportunityAlertRepository
 from app.repositories.opportunity_ranking_repository import OpportunityRankingRepository
 from app.repositories.opportunity_score_repository import OpportunityScoreRepository
@@ -27,6 +29,7 @@ from app.services.candidate_enrichment_service import CandidateEnrichmentService
 from app.services.candidate_qualification_service import CandidateQualificationService
 from app.services.candidate_service import CandidateService
 from app.services.meli_auth_service import MeliAuthService
+from app.services.opportunity_alert_query_service import OpportunityAlertQueryService
 from app.services.opportunity_alert_service import OpportunityAlertService
 from app.services.opportunity_ranking_service import OpportunityRankingService
 from app.services.opportunity_scoring_service import OpportunityScoringService
@@ -278,6 +281,44 @@ def alert_opportunities(limit: int = 50) -> None:
     except Exception:
         db.rollback()
         raise
+    finally:
+        db.close()
+
+
+@app.command("list-alerts")
+def list_alerts(
+    limit: int = 50,
+    status: str | None = typer.Option(
+        None,
+        help="Filtra por status: open, dismissed ou acted.",
+    ),
+    min_final_score: float | None = typer.Option(
+        None,
+        help="Retorna apenas alerts com final_score maior ou igual a este valor.",
+    ),
+    confidence_level: str | None = typer.Option(
+        None,
+        help="Filtra por confidence_level: high, medium, low ou none.",
+    ),
+) -> None:
+    db = SessionLocal()
+    try:
+        job = ListAlertsJob(
+            alert_query_repository=OpportunityAlertQueryRepository(db),
+            alert_query_service=OpportunityAlertQueryService(),
+        )
+        typer.echo(
+            json.dumps(
+                job.run(
+                    limit=limit,
+                    status=status,
+                    min_final_score=min_final_score,
+                    confidence_level=confidence_level,
+                ),
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
     finally:
         db.close()
 
