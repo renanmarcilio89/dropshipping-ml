@@ -1,69 +1,76 @@
-# Mercado Livre ML Pipeline
+# dropshipping-ml
 
-Scaffolding inicial para um pipeline modular de inteligência de mercado no Mercado Livre, orientado a:
+Pipeline modular em Python para construção de um agente de inteligência de mercado no Mercado Livre.
 
-- descoberta de demanda
-- coleta de resultados de busca
-- enriquecimento de itens
-- normalização de concorrência
-- cálculo de score de oportunidade
-- alertas
+O objetivo do projeto é identificar oportunidades de venda, dropshipping e afiliados com base em sinais de demanda, estrutura de categoria, qualidade da predição, concorrência estrutural e risco operacional — **sem atuar como seller nesta fase inicial**.
 
-## Stack
+---
 
-- Python 3.12
-- SQLAlchemy 2.x
-- Alembic
-- PostgreSQL
-- httpx
-- Pydantic v2
-- Typer
-- structlog
-- pytest
+## 🎯 Objetivo do sistema
 
-## Contas, credenciais e possíveis custos
+Construir um pipeline que:
 
-### 1. Mercado Livre Developers
-Necessário criar uma aplicação no portal Developers para obter credenciais OAuth e access token. A documentação oficial informa que o token deve ser enviado no header de autorização em todas as chamadas e que a aplicação pode atuar em nome do usuário enquanto o token estiver válido. citeturn714139search0turn714139search13
+1. Descobre demanda a partir de trends
+2. Gera candidatos de produto ou nicho
+3. Qualifica candidatos com heurísticas iniciais
+4. Enriquece candidatos com dados estruturais da API do Mercado Livre
+5. Avalia a qualidade semântica da predição de categoria/domínio
+6. Calcula score de oportunidade
+7. Ranqueia oportunidades
+8. Gera alertas acionáveis com explicabilidade
 
-Impacto de custo: normalmente não há custo direto para criar a aplicação, mas existe custo indireto de desenvolvimento, manutenção e eventual infraestrutura de execução.
+---
 
-### 2. Banco PostgreSQL
-Você pode rodar localmente sem custo inicial. Se optar por serviço gerenciado, haverá custo mensal.
+## 🚨 Escopo atual
 
-### 3. Scheduler / worker
-Nesta fase o projeto nasce com CLI e jobs sincronizáveis por cron/Task Scheduler. Isso evita custo inicial com Celery broker, filas gerenciadas ou orquestradores pagos.
+Este projeto **não é**, neste momento:
 
-## Boas práticas importantes
+* um integrador de seller
+* um sincronizador de catálogo próprio
+* um gerenciador de anúncios
+* um sistema operacional de publicação de anúncios
+* um pipeline baseado em `/users/{user_id}/items/search`
 
-A documentação do Mercado Livre recomenda trabalhar com a API em vez de web crawling. Nosso desenho segue essa diretriz: API-first e scraping HTML apenas como complemento pontual, quando estritamente necessário. citeturn714139search7
+O foco atual é **inteligência de mercado e priorização de oportunidades**.
 
-## Checkpoints de commit sugeridos
+Importante: o endpoint público `/sites/{site_id}/search` retornou `403 Forbidden` nos testes atuais, mesmo com Bearer Token. Por isso, a etapa de análise de anúncios reais ainda não faz parte do pipeline principal. A inteligência atual usa endpoints que estão funcionando no ambiente atual:
 
-1. `chore: bootstrap do projeto e configuração base`
-2. `feat: cliente Mercado Livre e schemas iniciais`
-3. `feat: models SQLAlchemy e sessão de banco`
-4. `feat: jobs de trends, search e enrich`
-5. `feat: score de oportunidade e alertas`
-6. `test: cobertura inicial do core e scoring`
+* `/trends/{site_id}`
+* `/sites/{site_id}/domain_discovery/search`
+* `/categories/{category_id}`
+* `/categories/{category_id}/attributes`
 
-## Instalação
+---
 
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# .venv\Scripts\activate  # Windows
-pip install -e .[dev]
-```
+## 🧠 Filosofia do projeto
 
-## Variáveis de ambiente
+* API-first, usando API oficial do Mercado Livre sempre que disponível
+* Persistência de payload bruto para auditoria, debugging e reprocessamento
+* Pipeline incremental e reprocessável
+* Separação clara entre:
+  * jobs: orquestração do pipeline
+  * services: regras de negócio
+  * repositories: acesso ao banco
+  * models: estrutura persistida
+  * clients: integração com APIs externas
+* Jobs controlam transação
+* Repositories não fazem commit
+* Estados explícitos para candidatos
+* Normalização centralizada de termos
 
-Copie `.env.example` para `.env` e preencha os valores.
+---
 
-## CLI
+## 🧱 Arquitetura
 
-```bash
-ml-pipeline health
-ml-pipeline sync-trends
-ml-pipeline search-marketplace --query "garrafa termica"
-```
+```text
+CLI (Typer)
+  ↓
+Jobs (orquestração)
+  ↓
+Services (regras de negócio)
+  ↓
+Repositories (persistência)
+  ↓
+Models / PostgreSQL
+  ↓
+Mercado Livre API
