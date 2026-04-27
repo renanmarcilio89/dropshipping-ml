@@ -32,7 +32,7 @@ class CandidateEnrichmentResult:
 
     required_attributes_count: int
     important_attributes_count: int
-    attribute_types_summary: dict[str, int]
+    attribute_types_summary: dict[str, Any]
     top_relevant_attributes: list[dict[str, Any]]
 
     term_token_count: int
@@ -61,7 +61,7 @@ class CandidateEnrichmentService:
         prediction_payload = self.client.predict_category(
             query=normalized_query,
             site_id=site_id,
-            limit=3,
+            limit=5,
         )
 
         top_prediction = prediction_payload[0] if prediction_payload else None
@@ -123,11 +123,28 @@ class CandidateEnrichmentService:
             predicted_attributes_count=predicted_attributes_count,
         )
 
-        prediction_confidence_score = self._prediction_confidence_score(
+        base_prediction_confidence_score = self._prediction_confidence_score(
             prediction_found=top_prediction is not None,
             category_depth=category_depth or 0,
             predicted_attributes_count=predicted_attributes_count,
             required_attributes_count=required_attributes_count,
+        )
+
+        prediction_quality = self._prediction_quality(
+            query=normalized_query,
+            prediction_payload=prediction_payload,
+            category_path_text=category_path_text,
+            category_depth=category_depth or 0,
+            prediction_confidence_score=base_prediction_confidence_score,
+        )
+
+        prediction_confidence_score = max(
+            0.0,
+            round(
+                base_prediction_confidence_score
+                - prediction_quality["confidence_penalty"],
+                4,
+            ),
         )
         prediction_confidence_level = self._prediction_confidence_level(
             prediction_confidence_score
@@ -151,7 +168,10 @@ class CandidateEnrichmentService:
             buying_modes=buying_modes,
             required_attributes_count=required_attributes_count,
             important_attributes_count=len(important_attributes),
-            attribute_types_summary=attribute_types_summary,
+            attribute_types_summary={
+                **attribute_types_summary,
+                "_prediction_quality": prediction_quality,
+            },
             top_relevant_attributes=important_attributes[:15],
             term_token_count=term_token_count,
             term_specificity_level=term_specificity_level,
@@ -284,3 +304,104 @@ class CandidateEnrichmentService:
         if score > 0:
             return "low"
         return "none"
+
+    @staticmethod
+    def _prediction_quality(
+        *,
+        query: str,
+        prediction_payload: list[dict[str, Any]],
+        category_path_text: str | None,
+        category_depth: int,
+        prediction_confidence_score: float,
+    ) -> dict[str, Any]:
+        reasons: list[str] = []
+        confidence_penalty = 0.0
+
+        token_count = CandidateEnrichmentService._term_token_count(query)
+        normalized_query = query.lower().strip()
+        normalized_path = (category_path_text or "").lower()
+
+        if not prediction_payload:
+            return {
+                "level": "none",
+                "confidence_penalty": 0.0,
+                "reasons": ["nenhuma predição encontrada"],
+                "alternatives_count": 0,
+                "distinct_categories_count": 0,
+                "distinct_domains_count": 0,
+            }
+
+        category_ids = {
+            prediction.get("category_id")
+            for prediction in prediction_payload
+            if prediction.get("category_id")
+        }
+        domain_ids = {
+            prediction.get("domain_id")
+            for prediction in prediction_payload
+            if prediction.get("domain_id")
+        }
+
+        distinct_categories_count = len(category_ids)
+        distinct_domains_count = len(domain_ids)
+
+        if token_count <= 1 and category_depth >= 5:
+            confidence_penalty += 0.20
+            reasons.append("termo curto associado a categoria muito profunda")
+
+        if distinct_categories_count >= 4:
+            confidence_penalty += 0.15
+            reasons.append("predições retornaram muitas categorias distintas")
+
+        if distinct_domains_count >= 4:
+            confidence_penalty += 0.10
+            reasons.append("predições retornaram muitos domínios distintos")
+
+        risky_path_terms = {
+            "xbox",
+            "playstation",
+            "palms",
+            "handhelds",
+            "acessórios para consoles",
+            "controles e joysticks",
+        }
+
+        if token_count <= 1 and any(term in normalized_path for term in risky_path_terms):
+            confidence_penalty += 0.25
+            reasons.append("termo genérico associado a caminho de categoria muito específico")
+
+        query_tokens = {
+            token
+            for token in normalized_query.split()
+            if len(token) >= 4
+        }
+
+        path_token_match = any(token in normalized_path for token in query_tokens)
+
+        if query_tokens and not path_token_match:
+            confidence_penalty += 0.10
+            reasons.append("caminho da categoria não contém tokens relevantes do termo")
+
+        if prediction_confidence_score >= 0.80 and confidence_penalty >= 0.25:
+            reasons.append("confiança estrutural alta, mas qualidade semântica suspeita")
+
+        confidence_penalty = round(min(confidence_penalty, 0.50), 4)
+
+        if confidence_penalty >= 0.30:
+            level = "low"
+        elif confidence_penalty >= 0.15:
+            level = "medium"
+        else:
+            level = "high"
+
+        if not reasons:
+            reasons.append("predição sem sinais relevantes de ambiguidade")
+
+        return {
+            "level": level,
+            "confidence_penalty": confidence_penalty,
+            "reasons": reasons,
+            "alternatives_count": len(prediction_payload),
+            "distinct_categories_count": distinct_categories_count,
+            "distinct_domains_count": distinct_domains_count,
+        }
