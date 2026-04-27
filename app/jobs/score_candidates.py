@@ -18,9 +18,12 @@ class ScoreCandidatesJob:
         self.opportunity_score_repository = opportunity_score_repository
         self.scoring_service = scoring_service
 
-    def run(self, *, limit: int = 100) -> dict:
+    def run(self, *, limit: int = 100, force: bool = False) -> dict:
         session = self.candidate_repository.session
-        candidates = self.candidate_repository.list_ready_for_scoring(limit=limit)
+        candidates = self.candidate_repository.list_scoring_targets(
+            limit=limit,
+            force=force,
+        )
 
         scored = 0
         skipped = 0
@@ -58,4 +61,5 @@ class ScoreCandidatesJob:
             "scored": scored,
             "skipped": skipped,
             "failed": failed,
+            "force": force,
         }

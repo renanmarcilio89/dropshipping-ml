@@ -12,6 +12,38 @@ class CandidateRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
 
+    def list_enrichment_targets(self, limit: int = 100, force: bool = False) -> list[Candidate]:
+        if not force:
+            return self.list_ready_for_enrichment(limit=limit)
+
+        stmt = (
+            select(Candidate)
+            .where(
+                Candidate.status.in_(
+                    [
+                        CandidateStatus.APPROVED_FOR_ENRICHMENT,
+                        CandidateStatus.ENRICHED,
+                        CandidateStatus.ENRICHMENT_FAILED,
+                    ]
+                )
+            )
+            .order_by(Candidate.last_enriched_at.asc().nullsfirst(), Candidate.id.asc())
+            .limit(limit)
+        )
+        return list(self.session.execute(stmt).scalars().all())
+
+    def list_scoring_targets(self, limit: int = 100, force: bool = False) -> list[Candidate]:
+        if not force:
+            return self.list_ready_for_scoring(limit=limit)
+
+        stmt = (
+            select(Candidate)
+            .where(Candidate.last_enriched_at.is_not(None))
+            .order_by(Candidate.last_enriched_at.asc(), Candidate.id.asc())
+            .limit(limit)
+        )
+        return list(self.session.execute(stmt).scalars().all())
+
     def upsert_candidates(self, terms: list[str]) -> int:
         now = datetime.now(timezone.utc)
         created_or_updated = 0

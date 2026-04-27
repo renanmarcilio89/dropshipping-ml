@@ -18,10 +18,13 @@ class EnrichCandidatesJob:
         self.raw_payload_repository = raw_payload_repository
         self.enrichment_service = enrichment_service
 
-    def run(self, *, site_id: str, limit: int = 20) -> dict:
+    def run(self, *, site_id: str, limit: int = 20, force: bool = False) -> dict:
         session = self.candidate_repository.session
 
-        candidates = self.candidate_repository.list_ready_for_enrichment(limit=limit)
+        candidates = self.candidate_repository.list_enrichment_targets(
+            limit=limit,
+            force=force,
+        )
 
         enriched = 0
         failed = 0
@@ -39,7 +42,7 @@ class EnrichCandidatesJob:
                     payload=result.prediction_payload,
                     payload_hash=self.enrichment_service.payload_hash(result.prediction_payload),
                     captured_at=result.captured_at,
-                    request_params={"q": candidate.normalized_term, "limit": 3},
+                    request_params={"q": candidate.normalized_term, "limit": 5},
                     site_id=site_id,
                 )
 
@@ -115,4 +118,5 @@ class EnrichCandidatesJob:
             "candidates_read": len(candidates),
             "enriched": enriched,
             "failed": failed,
+            "force": force,
         }

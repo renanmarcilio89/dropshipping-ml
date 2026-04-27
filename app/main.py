@@ -161,6 +161,11 @@ def qualify_candidates(limit: int = 100) -> None:
 def enrich_candidates(
     limit: int = 20,
     site_id: str = settings.meli_site_id,
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Reprocess candidates already enriched or with enrichment failure.",
+    ),
 ) -> None:
     db = SessionLocal()
     client = MercadoLivreClient(settings, db)
@@ -171,7 +176,7 @@ def enrich_candidates(
             raw_payload_repository=RawPayloadRepository(db),
             enrichment_service=CandidateEnrichmentService(client),
         )
-        result = job.run(site_id=site_id, limit=limit)
+        result = job.run(site_id=site_id, limit=limit, force=force)
         db.commit()
         typer.echo(
             json.dumps(
@@ -189,7 +194,14 @@ def enrich_candidates(
 
 
 @app.command("score-candidates")
-def score_candidates(limit: int = 100) -> None:
+def score_candidates(
+    limit: int = 100,
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Recalculates the score of candidates who already have an enrichment snapshot.",
+    ),
+) -> None:
     db = SessionLocal()
     try:
         job = ScoreCandidatesJob(
@@ -198,7 +210,7 @@ def score_candidates(limit: int = 100) -> None:
             opportunity_score_repository=OpportunityScoreRepository(db),
             scoring_service=OpportunityScoringService(),
         )
-        result = job.run(limit=limit)
+        result = job.run(limit=limit, force=force)
         db.commit()
         typer.echo(
             json.dumps(
