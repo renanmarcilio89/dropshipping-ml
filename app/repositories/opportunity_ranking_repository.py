@@ -52,6 +52,7 @@ class OpportunityRankingRepository:
                 CandidateMarketSnapshot.listing_allowed,
                 CandidateMarketSnapshot.required_attributes_count,
                 CandidateMarketSnapshot.important_attributes_count,
+                CandidateMarketSnapshot.attribute_types_summary,
                 OpportunityScore.demand_score,
                 OpportunityScore.competition_score,
                 OpportunityScore.quality_score,
