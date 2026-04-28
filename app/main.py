@@ -13,6 +13,7 @@ from app.jobs.analyze_commercial_opportunities import AnalyzeCommercialOpportuni
 from app.jobs.build_candidates import BuildCandidatesJob
 from app.jobs.enrich_candidates import EnrichCandidatesJob
 from app.jobs.list_alerts import ListAlertsJob
+from app.jobs.list_commercial_analyses import ListCommercialAnalysesJob
 from app.jobs.qualify_candidates import QualifyCandidatesJob
 from app.jobs.rank_opportunities import RankOpportunitiesJob
 from app.jobs.score_candidates import ScoreCandidatesJob
@@ -32,6 +33,7 @@ from app.services.candidate_enrichment_service import CandidateEnrichmentService
 from app.services.candidate_qualification_service import CandidateQualificationService
 from app.services.candidate_service import CandidateService
 from app.services.commercial_opportunity_service import CommercialOpportunityService
+from app.services.commercial_opportunity_query_service import CommercialOpportunityQueryService
 from app.services.meli_auth_service import MeliAuthService
 from app.services.opportunity_alert_query_service import OpportunityAlertQueryService
 from app.services.opportunity_alert_service import OpportunityAlertService
@@ -363,6 +365,47 @@ def commercial_opportunities(limit: int = 20) -> None:
     except Exception:
         db.rollback()
         raise
+    finally:
+        db.close()
+
+
+@app.command("list-commercial-analyses")
+def list_commercial_analyses(
+    limit: int = 20,
+    commercial_decision: str | None = typer.Option(
+        None,
+        help="Filtra por decisão: dropshipping_candidate, affiliate_candidate, research_needed ou avoid.",
+    ),
+    risk_level: str | None = typer.Option(
+        None,
+        help="Filtra por risco: low, medium ou high.",
+    ),
+    min_commercial_score: float | None = typer.Option(
+        None,
+        help="Retorna apenas análises com commercial_score maior ou igual a este valor.",
+    ),
+) -> None:
+    db = SessionLocal()
+    try:
+        job = ListCommercialAnalysesJob(
+            analysis_repository=CommercialOpportunityAnalysisRepository(db),
+            query_service=CommercialOpportunityQueryService(),
+        )
+
+        result = job.run(
+            limit=limit,
+            commercial_decision=commercial_decision,
+            risk_level=risk_level,
+            min_commercial_score=min_commercial_score,
+        )
+
+        typer.echo(
+            json.dumps(
+                result,
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
     finally:
         db.close()
 

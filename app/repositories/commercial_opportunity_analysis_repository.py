@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.market import CommercialOpportunityAnalysis
@@ -35,3 +36,34 @@ class CommercialOpportunityAnalysisRepository:
 
         self.session.add_all(records)
         return records
+
+    def list_latest(
+        self,
+        *,
+        limit: int = 20,
+        commercial_decision: str | None = None,
+        risk_level: str | None = None,
+        min_commercial_score: float | None = None,
+    ) -> list[CommercialOpportunityAnalysis]:
+        stmt = select(CommercialOpportunityAnalysis)
+
+        if commercial_decision is not None:
+            stmt = stmt.where(
+                CommercialOpportunityAnalysis.commercial_decision == commercial_decision
+            )
+
+        if risk_level is not None:
+            stmt = stmt.where(CommercialOpportunityAnalysis.risk_level == risk_level)
+
+        if min_commercial_score is not None:
+            stmt = stmt.where(
+                CommercialOpportunityAnalysis.commercial_score >= min_commercial_score
+            )
+
+        stmt = stmt.order_by(
+            CommercialOpportunityAnalysis.captured_at.desc(),
+            CommercialOpportunityAnalysis.commercial_score.desc(),
+            CommercialOpportunityAnalysis.id.desc(),
+        ).limit(limit)
+
+        return list(self.session.scalars(stmt).all())
