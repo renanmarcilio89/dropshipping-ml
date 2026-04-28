@@ -1,6 +1,7 @@
 from app.repositories.opportunity_ranking_repository import OpportunityRankingRepository
-from app.services.opportunity_ranking_service import OpportunityRankingService
 from app.services.commercial_opportunity_service import CommercialOpportunityService
+from app.services.market_price_service import MarketPriceService
+from app.services.opportunity_ranking_service import OpportunityRankingService
 
 
 class AnalyzeCommercialOpportunitiesJob:
@@ -19,7 +20,15 @@ class AnalyzeCommercialOpportunitiesJob:
         rows = self.ranking_repository.list_top_opportunities(limit=limit)
         opportunities = self.ranking_service.build_output(rows)
 
-        analyzed = self.commercial_service.build_output(opportunities)
+        price_service = MarketPriceService()
+
+        enriched_opportunities = []
+        for opportunity in opportunities:
+            price_data = price_service.estimate_from_category(opportunity)
+            opportunity.update(price_data)
+            enriched_opportunities.append(opportunity)
+
+        analyzed = self.commercial_service.build_output(enriched_opportunities)
 
         return {
             "count": len(analyzed),

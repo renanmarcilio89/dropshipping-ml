@@ -32,13 +32,15 @@ class CommercialOpportunityService:
         quality = self._float(opportunity.get("quality_score"))
         ops = self._float(opportunity.get("ops_risk_score"))
         prediction = self._prediction_reliability(opportunity)
+        price = self._price_signal(opportunity)
 
         score = (
-            demand * 0.35
-            + competition * 0.25
-            + quality * 0.20
+            demand * 0.28
+            + competition * 0.20
+            + quality * 0.15
             + ops * 0.10
-            + prediction * 0.10
+            + prediction * 0.12
+            + price * 0.15
         )
 
         return round(max(0.0, min(score, 1.0)), 4)
@@ -50,7 +52,16 @@ class CommercialOpportunityService:
         if opportunity.get("prediction_quality_level") == "low":
             return "avoid"
 
-        if score >= 0.72:
+        risk_level = self._risk_level(opportunity)
+
+        if risk_level == "high":
+            if score >= 0.60:
+                return "affiliate_candidate"
+            if score >= 0.50:
+                return "research_needed"
+            return "avoid"
+
+        if score >= 0.72 and risk_level == "low":
             return "dropshipping_candidate"
 
         if score >= 0.60:
@@ -93,12 +104,15 @@ class CommercialOpportunityService:
 
     def _recommended_action(self, decision: str) -> str:
         if decision == "dropshipping_candidate":
-            return "Validate supplier cost, shipping, and margins."
+            return "Validate supplier cost, shipping, marketplace fees, delivery time, and minimum viable margin before creating an offer."
+
         if decision == "affiliate_candidate":
-            return "Test demand via affiliate links."
+            return "Validate demand with affiliate links or content before taking supplier, shipping, or inventory exposure."
+
         if decision == "research_needed":
-            return "Collect price, supplier, and competition data."
-        return "Ignore for now."
+            return "Collect real offer prices, supplier options, fees, shipping constraints, and competitor data before choosing a monetization path."
+
+        return "Do not prioritize this opportunity until the structural risks or prediction quality improve."
 
     def _reasons(self, opportunity, decision, score, risk):
         reasons = []
@@ -130,6 +144,21 @@ class CommercialOpportunityService:
         confidence = self._float(opportunity.get("prediction_confidence_score"))
         penalty = self._float(opportunity.get("prediction_quality_penalty"))
         return max(0.0, min(confidence - penalty, 1.0))
+    
+    def _price_signal(self, opportunity):
+        avg_price = opportunity.get("avg_price")
+
+        if avg_price is None:
+            return 0.5
+
+        if avg_price >= 100:
+            return 0.9
+        if avg_price >= 50:
+            return 0.7
+        if avg_price >= 20:
+            return 0.5
+
+        return 0.3
 
     @staticmethod
     def _float(value):
