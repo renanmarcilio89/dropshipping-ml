@@ -9,6 +9,7 @@ from app.core.logging import configure_logging
 from app.core.settings import get_settings
 from app.db.session import SessionLocal, engine
 from app.jobs.alert_opportunities import AlertOpportunitiesJob
+from app.jobs.analyze_commercial_opportunities import AnalyzeCommercialOpportunitiesJob
 from app.jobs.build_candidates import BuildCandidatesJob
 from app.jobs.enrich_candidates import EnrichCandidatesJob
 from app.jobs.list_alerts import ListAlertsJob
@@ -28,6 +29,7 @@ from app.repositories.trend_repository import TrendRepository
 from app.services.candidate_enrichment_service import CandidateEnrichmentService
 from app.services.candidate_qualification_service import CandidateQualificationService
 from app.services.candidate_service import CandidateService
+from app.services.commercial_opportunity_service import CommercialOpportunityService
 from app.services.meli_auth_service import MeliAuthService
 from app.services.opportunity_alert_query_service import OpportunityAlertQueryService
 from app.services.opportunity_alert_service import OpportunityAlertService
@@ -327,6 +329,29 @@ def list_alerts(
                     min_final_score=min_final_score,
                     confidence_level=confidence_level,
                 ),
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+    finally:
+        db.close()
+
+
+@app.command("commercial-opportunities")
+def commercial_opportunities(limit: int = 20) -> None:
+    db = SessionLocal()
+    try:
+        job = AnalyzeCommercialOpportunitiesJob(
+            ranking_repository=OpportunityRankingRepository(db),
+            ranking_service=OpportunityRankingService(),
+            commercial_service=CommercialOpportunityService(),
+        )
+
+        result = job.run(limit=limit)
+
+        typer.echo(
+            json.dumps(
+                result,
                 ensure_ascii=False,
                 indent=2,
             )
