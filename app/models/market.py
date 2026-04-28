@@ -166,3 +166,33 @@ class OpportunityAlert(Base):
         nullable=False,
         server_default=func.now(),
     )
+
+class CommercialOpportunityAnalysis(Base):
+    __tablename__ = "commercial_opportunity_analysis"
+    __table_args__ = (
+        Index("ix_commercial_opportunity_analysis_candidate_id", "candidate_id"),
+        Index("ix_commercial_opportunity_analysis_captured_at", "captured_at"),
+        Index("ix_commercial_opportunity_analysis_decision", "commercial_decision"),
+        Index("ix_commercial_opportunity_analysis_risk_level", "risk_level"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    candidate_id: Mapped[int] = mapped_column(ForeignKey("candidate.id"), nullable=False)
+
+    commercial_score: Mapped[float] = mapped_column(Numeric(10, 4), nullable=False)
+    commercial_decision: Mapped[str] = mapped_column(Text, nullable=False)
+    monetization_fit: Mapped[str] = mapped_column(Text, nullable=False)
+    risk_level: Mapped[str] = mapped_column(Text, nullable=False)
+    recommended_action: Mapped[str] = mapped_column(Text, nullable=False)
+
+    reason_payload: Mapped[list] = mapped_column(JSON, nullable=False)
+    missing_data_payload: Mapped[list] = mapped_column(JSON, nullable=False)
+    source_payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    analysis_version: Mapped[str] = mapped_column(Text, nullable=False)
+
+    captured_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )

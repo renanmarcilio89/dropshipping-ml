@@ -19,6 +19,8 @@ from app.jobs.score_candidates import ScoreCandidatesJob
 from app.jobs.sync_trends import SyncTrendsJob
 from app.repositories.candidate_market_snapshot_repository import CandidateMarketSnapshotRepository
 from app.repositories.candidate_repository import CandidateRepository
+from app.repositories.commercial_opportunity_analysis_repository import CommercialOpportunityAnalysisRepository
+from app.services.commercial_opportunity_service import CommercialOpportunityService
 from app.repositories.meli_credentials import MeliCredentialRepository
 from app.repositories.opportunity_alert_query_repository import OpportunityAlertQueryRepository
 from app.repositories.opportunity_alert_repository import OpportunityAlertRepository
@@ -345,9 +347,11 @@ def commercial_opportunities(limit: int = 20) -> None:
             ranking_repository=OpportunityRankingRepository(db),
             ranking_service=OpportunityRankingService(),
             commercial_service=CommercialOpportunityService(),
+            analysis_repository=CommercialOpportunityAnalysisRepository(db),
         )
 
         result = job.run(limit=limit)
+        db.commit()
 
         typer.echo(
             json.dumps(
@@ -356,6 +360,9 @@ def commercial_opportunities(limit: int = 20) -> None:
                 indent=2,
             )
         )
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 

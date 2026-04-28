@@ -10,4 +10,5 @@ __all__ = [
     "TrendSnapshot",
     "Candidate",
     "OpportunityScore",
+    "CommercialOpportunityAnalysis",
 ]
