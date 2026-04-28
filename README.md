@@ -6,7 +6,7 @@ O objetivo do projeto é identificar oportunidades de venda, dropshipping e afil
 
 ---
 
-## 🎯 Objetivo do sistema
+## Objetivo do sistema
 
 Construir um pipeline que:
 
@@ -21,7 +21,7 @@ Construir um pipeline que:
 
 ---
 
-## 🚨 Escopo atual
+## Escopo atual
 
 Este projeto **não é**, neste momento:
 
@@ -42,7 +42,7 @@ Importante: o endpoint público `/sites/{site_id}/search` retornou `403 Forbidde
 
 ---
 
-## 🧠 Filosofia do projeto
+## Filosofia do projeto
 
 * API-first, usando API oficial do Mercado Livre sempre que disponível
 * Persistência de payload bruto para auditoria, debugging e reprocessamento
@@ -60,7 +60,62 @@ Importante: o endpoint público `/sites/{site_id}/search` retornou `403 Forbidde
 
 ---
 
-## 🧱 Arquitetura
+## Commercial Intelligence Layer
+
+A camada de inteligência comercial transforma oportunidades técnicas em decisões mais próximas de ação comercial.
+
+Ela reaproveita o ranking estrutural gerado pelo pipeline e classifica cada oportunidade em uma das seguintes decisões:
+
+- `dropshipping_candidate`: oportunidade com sinais suficientes para validar fornecedor, frete, taxas e margem.
+- `affiliate_candidate`: oportunidade indicada para validação com afiliados ou conteúdo antes de exposição operacional.
+- `research_needed`: oportunidade promissora, mas ainda dependente de dados adicionais.
+- `avoid`: oportunidade que não deve ser priorizada no momento.
+
+A análise comercial considera:
+
+- score estrutural da oportunidade;
+- qualidade da predição;
+- risco operacional;
+- complexidade da categoria;
+- quantidade de atributos obrigatórios;
+- sinais heurísticos de preço;
+- dados ausentes necessários para validação comercial.
+
+As análises comerciais são persistidas em `commercial_opportunity_analysis`, permitindo histórico e comparação futura.
+
+### Comandos
+
+```bash
+uv run python -m app.main commercial-opportunities
+```
+
+---
+
+## Pipeline atual
+
+```text
+sync-trends
+  ↓
+build-candidates
+  ↓
+qualify-candidates
+  ↓
+enrich-candidates
+  ↓
+score-candidates
+  ↓
+rank-opportunities
+  ↓
+alert-opportunities
+  ↓
+commercial-opportunities
+  ↓
+list-commercial-analyses
+```
+
+---
+
+## Arquitetura
 
 ```text
 CLI (Typer)
