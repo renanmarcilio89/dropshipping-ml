@@ -108,8 +108,12 @@ A camada de apresentacao fica separada:
     alert-opportunities
       ↓
     commercial-opportunities
-      ↓
+      ↓ 
     list-commercial-analyses
+      ↓
+    market-reality
+      ↓
+    list-market-reality
 
 ---
 
@@ -457,6 +461,8 @@ Para rodar o pipeline principal em sequencia:
     uv run python -m app.main alert-opportunities
     uv run python -m app.main commercial-opportunities
     uv run python -m app.main list-commercial-analyses
+    uv run python -m app.main market-reality --candidate-id 47 --sale-price 249.90 --supplier-cost 120.00 --shipping-cost 25.00 --marketplace-fee-rate 0.16 --ads-cost-rate 0.08
+    uv run python -m app.main list-market-reality
 
 Com outputs em portugues sem acentos nas etapas de leitura:
 
@@ -489,6 +495,66 @@ A analise comercial considera:
 - dados ausentes necessarios para validacao comercial.
 
 As analises comerciais sao persistidas em `commercial_opportunity_analysis`, permitindo historico e comparacao futura.
+
+---
+
+## Market Reality Layer
+
+A camada de realidade de mercado permite simular cenarios comerciais reais para uma oportunidade.
+
+Diferente do score estrutural e da analise comercial, essa camada trabalha com dados informados manualmente:
+
+- preco de venda;
+- custo do fornecedor;
+- custo de frete;
+- taxa do marketplace;
+- custo estimado de anuncios.
+
+Com esses dados, o motor calcula:
+
+- taxa do marketplace em valor absoluto;
+- custo de anuncios;
+- custo total;
+- lucro estimado;
+- margem estimada;
+- margem estimada percentual;
+- preco de break-even;
+- nivel de viabilidade;
+- recomendacao operacional.
+
+As analises sao persistidas em `market_reality_analysis`, permitindo comparar simulacoes de preco, custo e margem por candidato.
+
+### Gerar analise de realidade de mercado
+
+    uv run python -m app.main market-reality --candidate-id 47 --sale-price 249.90 --supplier-cost 120.00 --shipping-cost 25.00 --marketplace-fee-rate 0.16 --ads-cost-rate 0.08
+
+Com output em portugues sem acentos:
+
+    uv run python -m app.main market-reality --candidate-id 47 --sale-price 249.90 --supplier-cost 120.00 --shipping-cost 25.00 --marketplace-fee-rate 0.16 --ads-cost-rate 0.08 --language pt-BR
+
+### Listar analises de realidade de mercado
+
+    uv run python -m app.main list-market-reality
+
+Filtrar por candidato:
+
+    uv run python -m app.main list-market-reality --candidate-id 47
+
+Filtrar por nivel de viabilidade:
+
+    uv run python -m app.main list-market-reality --viability-level thin
+
+Filtrar por margem estimada minima:
+
+    uv run python -m app.main list-market-reality --min-estimated-margin 0.15
+
+Filtrar por lucro estimado minimo:
+
+    uv run python -m app.main list-market-reality --min-estimated-profit 30
+
+Com output em portugues sem acentos:
+
+    uv run python -m app.main list-market-reality --language pt-BR --limit 10
 
 ---
 
