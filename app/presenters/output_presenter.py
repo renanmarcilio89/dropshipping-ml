@@ -79,6 +79,11 @@ class OutputPresenter:
         "created_at": "criado_em",
         "min_estimated_margin": "margem_estimada_minima",
         "min_estimated_profit": "lucro_estimado_minimo",
+        "priority_score": "pontuacao_prioridade",
+        "investment_priority": "prioridade_investimento",
+        "commercial_recommended_action": "acao_recomendada_comercial",
+        "market_reality_recommendation": "recomendacao_realidade_mercado",
+        "market_reality_created_at": "realidade_mercado_criada_em",
     }
 
     VALUE_LABELS_PT_BR = {
@@ -106,6 +111,9 @@ class OutputPresenter:
         "thin": "Apertado",
         "weak": "Fraco",
         "unprofitable": "Nao lucrativo",
+        "high_priority": "Alta prioridade",
+        "controlled_validation": "Validacao controlada",
+        "watchlist": "Lista de acompanhamento",
     }
 
     TEXT_LABELS_PT_BR = {
@@ -151,6 +159,10 @@ class OutputPresenter:
         "Only proceed if demand is strong or if costs can be reduced.": "Prosseguir apenas se a demanda for forte ou se os custos puderem ser reduzidos.",
         "Do not prioritize unless supplier cost, fees, or shipping can improve.": "Nao priorizar a menos que custo de fornecedor, taxas ou frete possam melhorar.",
         "Avoid this scenario because estimated profit is negative or zero.": "Evitar este cenario porque o lucro estimado e negativo ou zero.",
+        "Prioritize validation with supplier, pricing, demand test, and operating constraints.": "Priorizar validacao com fornecedor, precificacao, teste de demanda e restricoes operacionais.",
+        "Run a controlled validation before committing capital or operational exposure.": "Executar validacao controlada antes de comprometer capital ou exposicao operacional.",
+        "Keep monitoring and improve margin, demand evidence, or operational conditions before acting.": "Continuar monitorando e melhorar margem, evidencia de demanda ou condicoes operacionais antes de agir.",
+        "Do not prioritize this opportunity under the current market reality scenario.": "Nao priorizar esta oportunidade no cenario atual de realidade de mercado.",
     }
 
     @classmethod

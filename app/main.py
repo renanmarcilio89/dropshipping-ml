@@ -15,6 +15,7 @@ from app.jobs.build_candidates import BuildCandidatesJob
 from app.jobs.enrich_candidates import EnrichCandidatesJob
 from app.jobs.list_alerts import ListAlertsJob
 from app.jobs.list_commercial_analyses import ListCommercialAnalysesJob
+from app.jobs.list_investment_priorities import ListInvestmentPrioritiesJob
 from app.jobs.list_market_reality import ListMarketRealityJob
 from app.jobs.qualify_candidates import QualifyCandidatesJob
 from app.jobs.rank_opportunities import RankOpportunitiesJob
@@ -28,6 +29,7 @@ from app.repositories.candidate_repository import CandidateRepository
 from app.repositories.commercial_opportunity_analysis_repository import (
     CommercialOpportunityAnalysisRepository,
 )
+from app.repositories.investment_priority_repository import InvestmentPriorityRepository
 from app.repositories.market_reality_analysis_repository import (
     MarketRealityAnalysisRepository,
 )
@@ -47,6 +49,7 @@ from app.services.commercial_opportunity_query_service import (
     CommercialOpportunityQueryService,
 )
 from app.services.commercial_opportunity_service import CommercialOpportunityService
+from app.services.investment_priority_service import InvestmentPriorityService
 from app.services.market_reality_query_service import MarketRealityQueryService
 from app.services.market_reality_service import MarketRealityService
 from app.services.meli_auth_service import MeliAuthService
@@ -520,6 +523,56 @@ def list_market_reality(
             viability_level=viability_level,
             min_estimated_margin=min_estimated_margin,
             min_estimated_profit=min_estimated_profit,
+        )
+        echo_json(result, language=language)
+    finally:
+        db.close()
+
+
+@app.command("investment-priorities")
+def investment_priorities(
+    limit: int = 20,
+    min_final_score: float | None = typer.Option(
+        None,
+        help="Return only priorities with final_score greater than or equal to this value.",
+    ),
+    min_commercial_score: float | None = typer.Option(
+        None,
+        help="Return only priorities with commercial_score greater than or equal to this value.",
+    ),
+    min_estimated_margin: float | None = typer.Option(
+        None,
+        help="Return only priorities with estimated_margin greater than or equal to this value.",
+    ),
+    commercial_decision: str | None = typer.Option(
+        None,
+        help="Filter by commercial decision.",
+    ),
+    viability_level: str | None = typer.Option(
+        None,
+        help="Filter by viability level.",
+    ),
+    language: str = typer.Option(
+        "en",
+        help="Output language: en or pt-BR.",
+    ),
+) -> None:
+    db = SessionLocal()
+    try:
+        job = ListInvestmentPrioritiesJob(
+            priority_repository=InvestmentPriorityRepository(db),
+            priority_service=InvestmentPriorityService(),
+            commercial_query_service=CommercialOpportunityQueryService(),
+            market_reality_query_service=MarketRealityQueryService(),
+        )
+
+        result = job.run(
+            limit=limit,
+            min_final_score=min_final_score,
+            min_commercial_score=min_commercial_score,
+            min_estimated_margin=min_estimated_margin,
+            commercial_decision=commercial_decision,
+            viability_level=viability_level,
         )
         echo_json(result, language=language)
     finally:
