@@ -18,12 +18,18 @@ from app.jobs.qualify_candidates import QualifyCandidatesJob
 from app.jobs.rank_opportunities import RankOpportunitiesJob
 from app.jobs.score_candidates import ScoreCandidatesJob
 from app.jobs.sync_trends import SyncTrendsJob
-from app.repositories.candidate_market_snapshot_repository import CandidateMarketSnapshotRepository
+from app.presenters.output_presenter import OutputPresenter
+from app.repositories.candidate_market_snapshot_repository import (
+    CandidateMarketSnapshotRepository,
+)
 from app.repositories.candidate_repository import CandidateRepository
-from app.repositories.commercial_opportunity_analysis_repository import CommercialOpportunityAnalysisRepository
-from app.services.commercial_opportunity_service import CommercialOpportunityService
+from app.repositories.commercial_opportunity_analysis_repository import (
+    CommercialOpportunityAnalysisRepository,
+)
 from app.repositories.meli_credentials import MeliCredentialRepository
-from app.repositories.opportunity_alert_query_repository import OpportunityAlertQueryRepository
+from app.repositories.opportunity_alert_query_repository import (
+    OpportunityAlertQueryRepository,
+)
 from app.repositories.opportunity_alert_repository import OpportunityAlertRepository
 from app.repositories.opportunity_ranking_repository import OpportunityRankingRepository
 from app.repositories.opportunity_score_repository import OpportunityScoreRepository
@@ -32,8 +38,10 @@ from app.repositories.trend_repository import TrendRepository
 from app.services.candidate_enrichment_service import CandidateEnrichmentService
 from app.services.candidate_qualification_service import CandidateQualificationService
 from app.services.candidate_service import CandidateService
+from app.services.commercial_opportunity_query_service import (
+    CommercialOpportunityQueryService,
+)
 from app.services.commercial_opportunity_service import CommercialOpportunityService
-from app.services.commercial_opportunity_query_service import CommercialOpportunityQueryService
 from app.services.meli_auth_service import MeliAuthService
 from app.services.opportunity_alert_query_service import OpportunityAlertQueryService
 from app.services.opportunity_alert_service import OpportunityAlertService
@@ -41,20 +49,37 @@ from app.services.opportunity_ranking_service import OpportunityRankingService
 from app.services.opportunity_scoring_service import OpportunityScoringService
 from app.services.search_service import SearchService
 
-app = typer.Typer(help='CLI do pipeline Mercado Livre.')
+app = typer.Typer(help="CLI do pipeline Mercado Livre.")
 settings = get_settings()
 configure_logging(settings.log_level)
+
+
+def echo_json(payload: object, *, language: str = "en") -> None:
+    presented_payload = OutputPresenter.present(payload, language=language)
+    typer.echo(
+        json.dumps(
+            presented_payload,
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
 
 
 @app.command()
 def health() -> None:
     with engine.connect() as connection:
-        connection.execute(text('SELECT 1'))
-    typer.echo('ok')
+        connection.execute(text("SELECT 1"))
+    typer.echo("ok")
 
 
-@app.command('sync-trends')
-def sync_trends(site_id: str = settings.meli_site_id) -> None:
+@app.command("sync-trends")
+def sync_trends(
+    site_id: str = settings.meli_site_id,
+    language: str = typer.Option(
+        "en",
+        help="Output language: en or pt-BR.",
+    ),
+) -> None:
     db = SessionLocal()
     client = MercadoLivreClient(settings, db)
     try:
@@ -63,17 +88,15 @@ def sync_trends(site_id: str = settings.meli_site_id) -> None:
             TrendRepository(db),
             RawPayloadRepository(db),
         )
-        typer.echo(json.dumps(job.run(site_id), ensure_ascii=False, indent=2))
+        result = job.run(site_id)
+        echo_json(result, language=language)
     finally:
         client.close()
         db.close()
 
 
-@app.command('auth-bootstrap')
+@app.command("auth-bootstrap")
 def auth_bootstrap(code: str) -> None:
-    """
-    Troca o authorization code por tokens e salva no banco.
-    """
     auth_service = MeliAuthService()
     token_data = auth_service.exchange_code_for_token(code)
     current_user = auth_service.get_current_user(token_data.access_token)
@@ -89,7 +112,7 @@ def auth_bootstrap(code: str) -> None:
         )
         db.commit()
         typer.echo(
-            f'Tokens salvos com sucesso para user_id={stored.user_id} nickname={stored.nickname}'
+            f"Tokens salvos com sucesso para user_id={stored.user_id} nickname={stored.nickname}"
         )
     except Exception:
         db.rollback()
@@ -98,36 +121,41 @@ def auth_bootstrap(code: str) -> None:
         db.close()
 
 
-@app.command('auth-current-user')
-def auth_current_user() -> None:
-    """
-    Lê o usuário atual usando token válido, com refresh automático.
-    """
+@app.command("auth-current-user")
+def auth_current_user(
+    language: str = typer.Option(
+        "en",
+        help="Output language: en or pt-BR.",
+    ),
+) -> None:
     db = SessionLocal()
     try:
         client = MeliApiClient(db)
-        payload = client.get('/users/me')
-        typer.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+        payload = client.get("/users/me")
+        echo_json(payload, language=language)
     finally:
         db.close()
 
 
-@app.command('auth-refresh')
+@app.command("auth-refresh")
 def auth_refresh() -> None:
-    """
-    Força um refresh do token armazenado.
-    """
     db = SessionLocal()
     try:
         client = MeliApiClient(db)
         token = client._refresh_and_get_access_token()
-        typer.echo(f'Novo access token obtido com sucesso: {token[:16]}...')
+        typer.echo(f"Novo access token obtido com sucesso: {token[:16]}...")
     finally:
         db.close()
 
 
 @app.command("build-candidates")
-def build_candidates(trend_limit: int = 100) -> None:
+def build_candidates(
+    trend_limit: int = 100,
+    language: str = typer.Option(
+        "en",
+        help="Output language: en or pt-BR.",
+    ),
+) -> None:
     db = SessionLocal()
     try:
         job = BuildCandidatesJob(
@@ -137,7 +165,7 @@ def build_candidates(trend_limit: int = 100) -> None:
         )
         result = job.run(trend_limit=trend_limit)
         db.commit()
-        typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
+        echo_json(result, language=language)
     except Exception:
         db.rollback()
         raise
@@ -146,7 +174,13 @@ def build_candidates(trend_limit: int = 100) -> None:
 
 
 @app.command("qualify-candidates")
-def qualify_candidates(limit: int = 100) -> None:
+def qualify_candidates(
+    limit: int = 100,
+    language: str = typer.Option(
+        "en",
+        help="Output language: en or pt-BR.",
+    ),
+) -> None:
     db = SessionLocal()
     try:
         job = QualifyCandidatesJob(
@@ -155,7 +189,7 @@ def qualify_candidates(limit: int = 100) -> None:
         )
         result = job.run(limit=limit)
         db.commit()
-        typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
+        echo_json(result, language=language)
     except Exception:
         db.rollback()
         raise
@@ -172,6 +206,10 @@ def enrich_candidates(
         "--force",
         help="Reprocess candidates already enriched or with enrichment failure.",
     ),
+    language: str = typer.Option(
+        "en",
+        help="Output language: en or pt-BR.",
+    ),
 ) -> None:
     db = SessionLocal()
     client = MercadoLivreClient(settings, db)
@@ -184,13 +222,7 @@ def enrich_candidates(
         )
         result = job.run(site_id=site_id, limit=limit, force=force)
         db.commit()
-        typer.echo(
-            json.dumps(
-                result,
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
+        echo_json(result, language=language)
     except Exception:
         db.rollback()
         raise
@@ -207,6 +239,10 @@ def score_candidates(
         "--force",
         help="Recalculates the score of candidates who already have an enrichment snapshot.",
     ),
+    language: str = typer.Option(
+        "en",
+        help="Output language: en or pt-BR.",
+    ),
 ) -> None:
     db = SessionLocal()
     try:
@@ -218,13 +254,7 @@ def score_candidates(
         )
         result = job.run(limit=limit, force=force)
         db.commit()
-        typer.echo(
-            json.dumps(
-                result,
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
+        echo_json(result, language=language)
     except Exception:
         db.rollback()
         raise
@@ -251,6 +281,10 @@ def rank_opportunities(
         None,
         help="Filtra categorias com até este total de itens.",
     ),
+    language: str = typer.Option(
+        "en",
+        help="Output language: en or pt-BR.",
+    ),
 ) -> None:
     db = SessionLocal()
     try:
@@ -258,25 +292,26 @@ def rank_opportunities(
             ranking_repository=OpportunityRankingRepository(db),
             ranking_service=OpportunityRankingService(),
         )
-        typer.echo(
-            json.dumps(
-                job.run(
-                    limit=limit,
-                    min_final_score=min_final_score,
-                    confidence_level=confidence_level,
-                    listing_allowed=listing_allowed,
-                    max_category_total_items=max_category_total_items,
-                ),
-                ensure_ascii=False,
-                indent=2,
-            )
+        result = job.run(
+            limit=limit,
+            min_final_score=min_final_score,
+            confidence_level=confidence_level,
+            listing_allowed=listing_allowed,
+            max_category_total_items=max_category_total_items,
         )
+        echo_json(result, language=language)
     finally:
         db.close()
 
 
 @app.command("alert-opportunities")
-def alert_opportunities(limit: int = 50) -> None:
+def alert_opportunities(
+    limit: int = 50,
+    language: str = typer.Option(
+        "en",
+        help="Output language: en or pt-BR.",
+    ),
+) -> None:
     db = SessionLocal()
     try:
         job = AlertOpportunitiesJob(
@@ -288,14 +323,7 @@ def alert_opportunities(limit: int = 50) -> None:
 
         result = job.run(limit=limit)
         db.commit()
-
-        typer.echo(
-            json.dumps(
-                result,
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
+        echo_json(result, language=language)
     except Exception:
         db.rollback()
         raise
@@ -318,6 +346,10 @@ def list_alerts(
         None,
         help="Filtra por confidence_level: high, medium, low ou none.",
     ),
+    language: str = typer.Option(
+        "en",
+        help="Output language: en or pt-BR.",
+    ),
 ) -> None:
     db = SessionLocal()
     try:
@@ -325,24 +357,25 @@ def list_alerts(
             alert_query_repository=OpportunityAlertQueryRepository(db),
             alert_query_service=OpportunityAlertQueryService(),
         )
-        typer.echo(
-            json.dumps(
-                job.run(
-                    limit=limit,
-                    status=status,
-                    min_final_score=min_final_score,
-                    confidence_level=confidence_level,
-                ),
-                ensure_ascii=False,
-                indent=2,
-            )
+        result = job.run(
+            limit=limit,
+            status=status,
+            min_final_score=min_final_score,
+            confidence_level=confidence_level,
         )
+        echo_json(result, language=language)
     finally:
         db.close()
 
 
 @app.command("commercial-opportunities")
-def commercial_opportunities(limit: int = 20) -> None:
+def commercial_opportunities(
+    limit: int = 20,
+    language: str = typer.Option(
+        "en",
+        help="Output language: en or pt-BR.",
+    ),
+) -> None:
     db = SessionLocal()
     try:
         job = AnalyzeCommercialOpportunitiesJob(
@@ -354,14 +387,7 @@ def commercial_opportunities(limit: int = 20) -> None:
 
         result = job.run(limit=limit)
         db.commit()
-
-        typer.echo(
-            json.dumps(
-                result,
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
+        echo_json(result, language=language)
     except Exception:
         db.rollback()
         raise
@@ -386,7 +412,7 @@ def list_commercial_analyses(
     ),
     language: str = typer.Option(
         "en",
-        help="Idioma do output: en ou pt-BR.",
+        help="Output language: en or pt-BR.",
     ),
 ) -> None:
     db = SessionLocal()
@@ -401,19 +427,11 @@ def list_commercial_analyses(
             commercial_decision=commercial_decision,
             risk_level=risk_level,
             min_commercial_score=min_commercial_score,
-            language=language,
         )
-
-        typer.echo(
-            json.dumps(
-                result,
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
+        echo_json(result, language=language)
     finally:
         db.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app()
