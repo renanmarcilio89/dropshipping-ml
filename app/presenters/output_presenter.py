@@ -69,6 +69,7 @@ class OutputPresenter:
         "total_cost": "custo_total",
         "estimated_profit": "lucro_estimado",
         "estimated_margin": "margem_estimada",
+        "estimated_margin_percent": "margem_estimada_percentual",
         "break_even_price": "preco_break_even",
         "viability_level": "nivel_viabilidade",
         "recommendation": "recomendacao",

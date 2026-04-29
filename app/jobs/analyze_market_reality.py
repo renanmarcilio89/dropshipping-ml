@@ -52,6 +52,7 @@ class AnalyzeMarketRealityJob:
             "total_cost": result.total_cost,
             "estimated_profit": result.estimated_profit,
             "estimated_margin": result.estimated_margin,
+            "estimated_margin_percent": result.estimated_margin_percent,
             "break_even_price": result.break_even_price,
             "viability_level": result.viability_level,
             "recommendation": result.recommendation,

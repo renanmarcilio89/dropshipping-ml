@@ -18,6 +18,7 @@ class MarketRealityQueryService:
                 "total_cost": float(analysis.total_cost),
                 "estimated_profit": float(analysis.estimated_profit),
                 "estimated_margin": float(analysis.estimated_margin),
+                "estimated_margin_percent": round(float(analysis.estimated_margin) * 100, 2),
                 "break_even_price": float(analysis.break_even_price),
                 "viability_level": analysis.viability_level,
                 "recommendation": analysis.recommendation,

@@ -24,6 +24,7 @@ class MarketRealityResult:
     total_cost: float
     estimated_profit: float
     estimated_margin: float
+    estimated_margin_percent: float
     break_even_price: float
     viability_level: str
     recommendation: str
@@ -39,6 +40,7 @@ class MarketRealityService:
         )
         estimated_profit = round(data.sale_price - total_cost, 2)
         estimated_margin = self._margin(estimated_profit, data.sale_price)
+        estimated_margin_percent = round(estimated_margin * 100, 2)
         break_even_price = self._break_even_price(
             supplier_cost=data.supplier_cost,
             shipping_cost=data.shipping_cost,
@@ -58,6 +60,7 @@ class MarketRealityService:
             total_cost=total_cost,
             estimated_profit=estimated_profit,
             estimated_margin=estimated_margin,
+            estimated_margin_percent=estimated_margin_percent,
             break_even_price=break_even_price,
             viability_level=viability_level,
             recommendation=recommendation,
