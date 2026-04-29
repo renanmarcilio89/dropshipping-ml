@@ -15,6 +15,7 @@ from app.jobs.build_candidates import BuildCandidatesJob
 from app.jobs.enrich_candidates import EnrichCandidatesJob
 from app.jobs.list_alerts import ListAlertsJob
 from app.jobs.list_commercial_analyses import ListCommercialAnalysesJob
+from app.jobs.list_market_reality import ListMarketRealityJob
 from app.jobs.qualify_candidates import QualifyCandidatesJob
 from app.jobs.rank_opportunities import RankOpportunitiesJob
 from app.jobs.score_candidates import ScoreCandidatesJob
@@ -46,6 +47,7 @@ from app.services.commercial_opportunity_query_service import (
     CommercialOpportunityQueryService,
 )
 from app.services.commercial_opportunity_service import CommercialOpportunityService
+from app.services.market_reality_query_service import MarketRealityQueryService
 from app.services.market_reality_service import MarketRealityService
 from app.services.meli_auth_service import MeliAuthService
 from app.services.opportunity_alert_query_service import OpportunityAlertQueryService
@@ -477,6 +479,49 @@ def market_reality(
     except Exception:
         db.rollback()
         raise
+    finally:
+        db.close()
+
+
+@app.command("list-market-reality")
+def list_market_reality(
+    limit: int = 20,
+    candidate_id: int | None = typer.Option(
+        None,
+        help="Candidate id.",
+    ),
+    viability_level: str | None = typer.Option(
+        None,
+        help="Filter by viability level: strong, viable, thin, weak or unprofitable.",
+    ),
+    min_estimated_margin: float | None = typer.Option(
+        None,
+        help="Return only analyses with estimated_margin greater than or equal to this value.",
+    ),
+    min_estimated_profit: float | None = typer.Option(
+        None,
+        help="Return only analyses with estimated_profit greater than or equal to this value.",
+    ),
+    language: str = typer.Option(
+        "en",
+        help="Output language: en or pt-BR.",
+    ),
+) -> None:
+    db = SessionLocal()
+    try:
+        job = ListMarketRealityJob(
+            analysis_repository=MarketRealityAnalysisRepository(db),
+            query_service=MarketRealityQueryService(),
+        )
+
+        result = job.run(
+            limit=limit,
+            candidate_id=candidate_id,
+            viability_level=viability_level,
+            min_estimated_margin=min_estimated_margin,
+            min_estimated_profit=min_estimated_profit,
+        )
+        echo_json(result, language=language)
     finally:
         db.close()
 

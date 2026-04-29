@@ -74,6 +74,10 @@ class OutputPresenter:
         "recommendation": "recomendacao",
         "marketplace_fee_rate": "taxa_marketplace_percentual",
         "ads_cost_rate": "taxa_anuncios_percentual",
+        "id": "id",
+        "created_at": "criado_em",
+        "min_estimated_margin": "margem_estimada_minima",
+        "min_estimated_profit": "lucro_estimado_minimo",
     }
 
     VALUE_LABELS_PT_BR = {
