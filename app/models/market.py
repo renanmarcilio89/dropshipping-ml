@@ -196,3 +196,38 @@ class CommercialOpportunityAnalysis(Base):
         nullable=False,
         server_default=func.now(),
     )
+
+class MarketRealityAnalysis(Base):
+    __tablename__ = "market_reality_analysis"
+    __table_args__ = (
+        Index("ix_market_reality_analysis_candidate_id", "candidate_id"),
+        Index("ix_market_reality_analysis_created_at", "created_at"),
+        Index("ix_market_reality_analysis_viability_level", "viability_level"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    candidate_id: Mapped[int] = mapped_column(ForeignKey("candidate.id"), nullable=False)
+
+    sale_price: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    supplier_cost: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    shipping_cost: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+
+    marketplace_fee_rate: Mapped[float] = mapped_column(Numeric(8, 4), nullable=False)
+    ads_cost_rate: Mapped[float] = mapped_column(Numeric(8, 4), nullable=False)
+
+    marketplace_fee: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    ads_cost: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    total_cost: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    estimated_profit: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    estimated_margin: Mapped[float] = mapped_column(Numeric(10, 4), nullable=False)
+    break_even_price: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+
+    viability_level: Mapped[str] = mapped_column(Text, nullable=False)
+    recommendation: Mapped[str] = mapped_column(Text, nullable=False)
+    analysis_version: Mapped[str] = mapped_column(Text, nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )

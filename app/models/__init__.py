@@ -4,11 +4,12 @@ from app.models.market import Candidate, OpportunityScore, TrendSnapshot
 from app.models.raw import ApiPayload
 
 __all__ = [
-    "Base",
-    "MeliCredential",
     "ApiPayload",
-    "TrendSnapshot",
+    "Base",
     "Candidate",
-    "OpportunityScore",
     "CommercialOpportunityAnalysis",
+    "MarketRealityAnalysis",
+    "MeliCredential",
+    "OpportunityScore",
+    "TrendSnapshot",
 ]

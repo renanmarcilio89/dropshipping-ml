@@ -27,6 +27,9 @@ from app.repositories.candidate_repository import CandidateRepository
 from app.repositories.commercial_opportunity_analysis_repository import (
     CommercialOpportunityAnalysisRepository,
 )
+from app.repositories.market_reality_analysis_repository import (
+    MarketRealityAnalysisRepository,
+)
 from app.repositories.meli_credentials import MeliCredentialRepository
 from app.repositories.opportunity_alert_query_repository import (
     OpportunityAlertQueryRepository,
@@ -454,19 +457,28 @@ def market_reality(
         help="Output language: en or pt-BR.",
     ),
 ) -> None:
-    job = AnalyzeMarketRealityJob(
-        market_reality_service=MarketRealityService(),
-    )
+    db = SessionLocal()
+    try:
+        job = AnalyzeMarketRealityJob(
+            market_reality_service=MarketRealityService(),
+            analysis_repository=MarketRealityAnalysisRepository(db),
+        )
 
-    result = job.run(
-        candidate_id=candidate_id,
-        sale_price=sale_price,
-        supplier_cost=supplier_cost,
-        shipping_cost=shipping_cost,
-        marketplace_fee_rate=marketplace_fee_rate,
-        ads_cost_rate=ads_cost_rate,
-    )
-    echo_json(result, language=language)
+        result = job.run(
+            candidate_id=candidate_id,
+            sale_price=sale_price,
+            supplier_cost=supplier_cost,
+            shipping_cost=shipping_cost,
+            marketplace_fee_rate=marketplace_fee_rate,
+            ads_cost_rate=ads_cost_rate,
+        )
+        db.commit()
+        echo_json(result, language=language)
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":
