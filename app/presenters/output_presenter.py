@@ -163,6 +163,11 @@ class OutputPresenter:
         "Run a controlled validation before committing capital or operational exposure.": "Executar validacao controlada antes de comprometer capital ou exposicao operacional.",
         "Keep monitoring and improve margin, demand evidence, or operational conditions before acting.": "Continuar monitorando e melhorar margem, evidencia de demanda ou condicoes operacionais antes de agir.",
         "Do not prioritize this opportunity under the current market reality scenario.": "Nao priorizar esta oportunidade no cenario atual de realidade de mercado.",
+        "Validate supplier cost, shipping, marketplace fees, delivery time, and minimum viable margin before creating an offer.": "Validar custo do fornecedor, frete, taxas do marketplace, prazo de entrega e margem minima viavel antes de criar uma oferta.",
+        "Validate supplier cost, shipping feasibility, marketplace fees, and minimum margin before creating an offer.": "Validar custo do fornecedor, viabilidade de frete, taxas do marketplace e margem minima antes de criar uma oferta.",
+        "Research affiliate programs, content angles, and offer availability before taking inventory exposure.": "Pesquisar programas de afiliados, angulos de conteudo e disponibilidade de ofertas antes de assumir exposicao com estoque.",
+        "Collect real offer prices, supplier options, fees, shipping constraints, and demand evidence before choosing a monetization path.": "Coletar precos reais de ofertas, opcoes de fornecedores, taxas, restricoes de frete e evidencias de demanda antes de escolher uma estrategia de monetizacao.",
+        "Do not prioritize this opportunity until the structural risks or prediction quality improve.": "Nao priorizar esta oportunidade ate que os riscos estruturais ou a qualidade da predicao melhorem.",
     }
 
     @classmethod

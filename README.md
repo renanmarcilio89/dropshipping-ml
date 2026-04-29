@@ -114,6 +114,8 @@ A camada de apresentacao fica separada:
     market-reality
       ↓
     list-market-reality
+      ↓
+    investment-priorities
 
 ---
 
@@ -463,6 +465,7 @@ Para rodar o pipeline principal em sequencia:
     uv run python -m app.main list-commercial-analyses
     uv run python -m app.main market-reality --candidate-id 47 --sale-price 249.90 --supplier-cost 120.00 --shipping-cost 25.00 --marketplace-fee-rate 0.16 --ads-cost-rate 0.08
     uv run python -m app.main list-market-reality
+    uv run python -m app.main investment-priorities
 
 Com outputs em portugues sem acentos nas etapas de leitura:
 
@@ -555,6 +558,44 @@ Filtrar por lucro estimado minimo:
 Com output em portugues sem acentos:
 
     uv run python -m app.main list-market-reality --language pt-BR --limit 10
+
+---
+
+## Investment Priority Layer
+
+A camada de prioridade de investimento consolida tres fontes de decisao:
+
+- score estrutural da oportunidade;
+- analise comercial persistida;
+- analise de realidade de mercado persistida.
+
+O objetivo e responder quais oportunidades devem receber atencao primeiro para validacao, teste ou investimento.
+
+A prioridade considera:
+
+- `final_score`;
+- `commercial_score`;
+- `commercial_decision`;
+- `risk_level`;
+- `estimated_profit`;
+- `estimated_margin`;
+- `viability_level`.
+
+### Listar prioridades de investimento
+
+    uv run python -m app.main investment-priorities
+
+Com output em portugues sem acentos:
+
+    uv run python -m app.main investment-priorities --language pt-BR
+
+Filtros uteis:
+
+    uv run python -m app.main investment-priorities --min-final-score 0.7
+    uv run python -m app.main investment-priorities --min-commercial-score 0.7
+    uv run python -m app.main investment-priorities --min-estimated-margin 0.15
+    uv run python -m app.main investment-priorities --commercial-decision dropshipping_candidate
+    uv run python -m app.main investment-priorities --viability-level thin
 
 ---
 
