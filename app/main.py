@@ -384,6 +384,10 @@ def list_commercial_analyses(
         None,
         help="Retorna apenas análises com commercial_score maior ou igual a este valor.",
     ),
+    language: str = typer.Option(
+        "en",
+        help="Idioma do output: en ou pt-BR.",
+    ),
 ) -> None:
     db = SessionLocal()
     try:
@@ -397,6 +401,7 @@ def list_commercial_analyses(
             commercial_decision=commercial_decision,
             risk_level=risk_level,
             min_commercial_score=min_commercial_score,
+            language=language,
         )
 
         typer.echo(

@@ -1,3 +1,4 @@
+from app.presenters.commercial_opportunity_presenter import CommercialOpportunityPresenter
 from app.repositories.commercial_opportunity_analysis_repository import (
     CommercialOpportunityAnalysisRepository,
 )
@@ -23,6 +24,7 @@ class ListCommercialAnalysesJob:
         commercial_decision: str | None = None,
         risk_level: str | None = None,
         min_commercial_score: float | None = None,
+        language: str = "en",
     ) -> dict:
         normalized_decision = self.query_service.normalize_commercial_decision(
             commercial_decision
@@ -37,14 +39,19 @@ class ListCommercialAnalysesJob:
         )
 
         items = self.query_service.build_output(analyses)
+        presented_items = CommercialOpportunityPresenter.present_many(
+            items,
+            language=language,
+        )
 
         return {
-            "count": len(items),
+            "count": len(presented_items),
+            "language": language,
             "filters": {
                 "limit": limit,
                 "commercial_decision": normalized_decision,
                 "risk_level": normalized_risk_level,
                 "min_commercial_score": min_commercial_score,
             },
-            "items": items,
+            "items": presented_items,
         }
