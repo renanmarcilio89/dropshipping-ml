@@ -61,6 +61,19 @@ class OutputPresenter:
         "limit": "limite",
         "trend_limit": "limite_tendencias",
         "force": "forcar",
+        "sale_price": "preco_venda",
+        "supplier_cost": "custo_fornecedor",
+        "shipping_cost": "custo_frete",
+        "marketplace_fee": "taxa_marketplace",
+        "ads_cost": "custo_anuncios",
+        "total_cost": "custo_total",
+        "estimated_profit": "lucro_estimado",
+        "estimated_margin": "margem_estimada",
+        "break_even_price": "preco_break_even",
+        "viability_level": "nivel_viabilidade",
+        "recommendation": "recomendacao",
+        "marketplace_fee_rate": "taxa_marketplace_percentual",
+        "ads_cost_rate": "taxa_anuncios_percentual",
     }
 
     VALUE_LABELS_PT_BR = {
@@ -83,6 +96,11 @@ class OutputPresenter:
         "pending_enrichment": "Pendente de enriquecimento",
         "enriched": "Enriquecido",
         "enrichment_failed": "Falha no enriquecimento",
+        "strong": "Forte",
+        "viable": "Viavel",
+        "thin": "Apertado",
+        "weak": "Fraco",
+        "unprofitable": "Nao lucrativo",
     }
 
     TEXT_LABELS_PT_BR = {
@@ -123,6 +141,11 @@ class OutputPresenter:
         "Marketplace fees": "Taxas do marketplace",
         "Shipping cost": "Custo de frete",
         "Competition pricing": "Preco da concorrencia",
+        "Proceed to validate demand, supplier reliability, and fulfillment constraints.": "Prosseguir para validar demanda, confiabilidade do fornecedor e restricoes operacionais.",
+        "Proceed with caution and validate acquisition costs before scaling.": "Prosseguir com cautela e validar custos de aquisicao antes de escalar.",
+        "Only proceed if demand is strong or if costs can be reduced.": "Prosseguir apenas se a demanda for forte ou se os custos puderem ser reduzidos.",
+        "Do not prioritize unless supplier cost, fees, or shipping can improve.": "Nao priorizar a menos que custo de fornecedor, taxas ou frete possam melhorar.",
+        "Avoid this scenario because estimated profit is negative or zero.": "Evitar este cenario porque o lucro estimado e negativo ou zero.",
     }
 
     @classmethod

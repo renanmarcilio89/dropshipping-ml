@@ -10,6 +10,7 @@ from app.core.settings import get_settings
 from app.db.session import SessionLocal, engine
 from app.jobs.alert_opportunities import AlertOpportunitiesJob
 from app.jobs.analyze_commercial_opportunities import AnalyzeCommercialOpportunitiesJob
+from app.jobs.analyze_market_reality import AnalyzeMarketRealityJob
 from app.jobs.build_candidates import BuildCandidatesJob
 from app.jobs.enrich_candidates import EnrichCandidatesJob
 from app.jobs.list_alerts import ListAlertsJob
@@ -42,6 +43,7 @@ from app.services.commercial_opportunity_query_service import (
     CommercialOpportunityQueryService,
 )
 from app.services.commercial_opportunity_service import CommercialOpportunityService
+from app.services.market_reality_service import MarketRealityService
 from app.services.meli_auth_service import MeliAuthService
 from app.services.opportunity_alert_query_service import OpportunityAlertQueryService
 from app.services.opportunity_alert_service import OpportunityAlertService
@@ -431,6 +433,40 @@ def list_commercial_analyses(
         echo_json(result, language=language)
     finally:
         db.close()
+
+
+@app.command("market-reality")
+def market_reality(
+    candidate_id: int = typer.Option(..., help="Candidate id."),
+    sale_price: float = typer.Option(..., help="Expected sale price."),
+    supplier_cost: float = typer.Option(..., help="Supplier product cost."),
+    shipping_cost: float = typer.Option(..., help="Expected shipping cost."),
+    marketplace_fee_rate: float = typer.Option(
+        ...,
+        help="Marketplace fee rate. Example: 0.16 for 16 percent.",
+    ),
+    ads_cost_rate: float = typer.Option(
+        0.0,
+        help="Ads cost rate. Example: 0.08 for 8 percent.",
+    ),
+    language: str = typer.Option(
+        "en",
+        help="Output language: en or pt-BR.",
+    ),
+) -> None:
+    job = AnalyzeMarketRealityJob(
+        market_reality_service=MarketRealityService(),
+    )
+
+    result = job.run(
+        candidate_id=candidate_id,
+        sale_price=sale_price,
+        supplier_cost=supplier_cost,
+        shipping_cost=shipping_cost,
+        marketplace_fee_rate=marketplace_fee_rate,
+        ads_cost_rate=ads_cost_rate,
+    )
+    echo_json(result, language=language)
 
 
 if __name__ == "__main__":
